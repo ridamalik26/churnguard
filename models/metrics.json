@@ -1,0 +1,60 @@
+{
+  "threshold": 0.46718835830688477,
+  "feature_columns": [
+    "SeniorCitizen",
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges",
+    "gender_Male",
+    "Partner_Yes",
+    "Dependents_Yes",
+    "PhoneService_Yes",
+    "MultipleLines_No phone service",
+    "MultipleLines_Yes",
+    "InternetService_Fiber optic",
+    "InternetService_No",
+    "OnlineSecurity_No internet service",
+    "OnlineSecurity_Yes",
+    "OnlineBackup_No internet service",
+    "OnlineBackup_Yes",
+    "DeviceProtection_No internet service",
+    "DeviceProtection_Yes",
+    "TechSupport_No internet service",
+    "TechSupport_Yes",
+    "StreamingTV_No internet service",
+    "StreamingTV_Yes",
+    "StreamingMovies_No internet service",
+    "StreamingMovies_Yes",
+    "Contract_One year",
+    "Contract_Two year",
+    "PaperlessBilling_Yes",
+    "PaymentMethod_Credit card (automatic)",
+    "PaymentMethod_Electronic check",
+    "PaymentMethod_Mailed check"
+  ],
+  "xgboost_test_default_threshold": {
+    "roc_auc": 0.7921244239631338,
+    "pr_auc": 0.544533397500224,
+    "precision": 0.5289017341040463,
+    "recall": 0.6535714285714286,
+    "f1": 0.5846645367412141
+  },
+  "xgboost_test_tuned_threshold": {
+    "roc_auc": 0.7921244239631338,
+    "pr_auc": 0.544533397500224,
+    "precision": 0.5223463687150838,
+    "recall": 0.6678571428571428,
+    "f1": 0.5862068965517241
+  },
+  "logistic_regression_test": {
+    "roc_auc": 0.8221589861751153,
+    "pr_auc": 0.5799593648382916,
+    "precision": 0.49099099099099097,
+    "recall": 0.7785714285714286,
+    "f1": 0.6022099447513812
+  },
+  "cv_mean_roc_auc": {
+    "logistic_regression": 0.8475598246733504,
+    "xgboost": 0.820446586418497
+  }
+}
