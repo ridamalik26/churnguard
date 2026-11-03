@@ -31,16 +31,16 @@ function MessageCard({ message }: { message: RetentionMessage }) {
     <article className="rounded-lg border border-line bg-page p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-ink-secondary">Subject</p>
-          <h3 className="mt-0.5 text-sm font-semibold break-words">{message.subject}</h3>
+          <p className="text-xs text-ink-secondary">Subject</p>
+          <h3 className="mt-0.5 font-semibold break-words">{message.subject}</h3>
         </div>
         <Button onClick={copyMessage} className="shrink-0">
-          {copyState === "copied" ? <Check aria-hidden className="size-4" /> : <Copy aria-hidden className="size-4" />}
+          {copyState === "copied" ? <Check aria-hidden className="size-3.5" /> : <Copy aria-hidden className="size-3.5" />}
           {copyState === "copied" ? "Copied" : "Copy"}
         </Button>
       </div>
-      <p className="mt-3 border-t border-line pt-3 text-sm break-words whitespace-pre-wrap">{message.body}</p>
-      <p aria-live="polite" className="mt-2 text-xs text-red-700 empty:hidden dark:text-red-300">
+      <p className="mt-3 border-t border-line pt-3 break-words whitespace-pre-wrap">{message.body}</p>
+      <p aria-live="polite" className="mt-2 text-xs text-ink-secondary empty:hidden">
         {copyState === "failed" ? "Could not copy to the clipboard. Select the text and copy it by hand." : ""}
       </p>
     </article>
@@ -64,7 +64,7 @@ export function RetentionPanel({ customerId }: { customerId: string }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <Button variant="primary" onClick={generateMessage} disabled={loading} className="w-full">
+      <Button variant="solid" onClick={generateMessage} disabled={loading} className="w-full">
         {loading && <LoaderCircle aria-hidden className="size-4 animate-spin" />}
         {loading ? "Generating Message" : "Generate Retention Message"}
       </Button>

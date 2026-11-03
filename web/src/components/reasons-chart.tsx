@@ -2,9 +2,9 @@
 
 import { Bar, BarChart, ResponsiveContainer, Text, Tooltip, XAxis, YAxis } from "recharts";
 
-const ROW_HEIGHT = 68;
-const LABEL_WIDTH = 190;
-const BAR_THICKNESS = 20;
+const ROW_HEIGHT = 64;
+const LABEL_WIDTH = 180;
+const BAR_THICKNESS = 16;
 
 type ReasonRow = {
   reason: string;
@@ -45,8 +45,8 @@ function ReasonTooltip({ active, payload, total }: TooltipProps) {
   const row = payload?.[0]?.payload;
   if (!active || !row) return null;
   return (
-    <div className="max-w-56 rounded-md border border-line bg-surface px-3 py-2 text-xs shadow-sm">
-      <p className="text-ink">{row.reason}</p>
+    <div className="max-w-56 rounded-md border border-line bg-surface px-3 py-2 text-xs shadow-card">
+      <p>{row.reason}</p>
       <p className="mt-1 text-ink-secondary">
         Rank {row.rank} of {total}
       </p>
@@ -73,11 +73,11 @@ export function ReasonsChart({ reasons }: { reasons: string[] }) {
               width={LABEL_WIDTH}
               interval={0}
               tickLine={false}
-              axisLine={{ stroke: "var(--baseline)" }}
+              axisLine={{ stroke: "var(--line)" }}
               tick={ReasonTick}
             />
-            <Tooltip cursor={{ fill: "var(--line)", opacity: 0.4 }} content={<ReasonTooltip total={rows.length} />} />
-            <Bar dataKey="impact" fill="var(--chart-bar)" barSize={BAR_THICKNESS} radius={[0, 4, 4, 0]} isAnimationActive={false} />
+            <Tooltip cursor={{ fill: "var(--accent-tint)" }} content={<ReasonTooltip total={rows.length} />} />
+            <Bar dataKey="impact" fill="var(--accent)" barSize={BAR_THICKNESS} radius={[0, 4, 4, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>

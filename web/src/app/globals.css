@@ -4,50 +4,70 @@
 
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --ink: #0b0b0b;
-  --ink-secondary: #52514e;
-  --line: #e1e0d9;
-  --baseline: #c3c2b7;
-  --accent: #256abf;
-  --accent-ink: #ffffff;
-  --chart-bar: #2a78d6;
+  --page: #f9fafb;
+  --surface: #ffffff;
+  --line: #e5e7eb;
+  --ink: #111827;
+  --ink-secondary: #6b7280;
+  --accent: #6366f1;
+  --accent-tint: rgb(99 102 241 / 0.08);
+  --on-accent: #ffffff;
+  --risk-high: #ef4444;
+  --risk-high-tint: rgb(239 68 68 / 0.12);
+  --risk-medium: #f59e0b;
+  --risk-medium-tint: rgb(245 158 11 / 0.12);
+  --risk-low: #10b981;
+  --risk-low-tint: rgb(16 185 129 / 0.12);
+  --card-shadow: 0 1px 3px rgb(17 24 39 / 0.08);
 }
 
 .dark {
   color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --ink: #f0efec;
-  --ink-secondary: #c3c2b7;
-  --line: #2c2c2a;
-  --baseline: #383835;
-  --accent: #3987e5;
-  --accent-ink: #0b0b0b;
-  --chart-bar: #3987e5;
+  --page: #0f1117;
+  --surface: #1a1d27;
+  --line: #2d3148;
+  --ink: #f9fafb;
+  --ink-secondary: #9ca3af;
+  --card-shadow: 0 1px 3px rgb(15 17 23 / 0.6);
 }
 
 @theme inline {
+  --color-*: initial;
   --color-page: var(--page);
   --color-surface: var(--surface);
+  --color-line: var(--line);
   --color-ink: var(--ink);
   --color-ink-secondary: var(--ink-secondary);
-  --color-line: var(--line);
   --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-ink);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent-tint: var(--accent-tint);
+  --color-on-accent: var(--on-accent);
+  --color-risk-high: var(--risk-high);
+  --color-risk-high-tint: var(--risk-high-tint);
+  --color-risk-medium: var(--risk-medium);
+  --color-risk-medium-tint: var(--risk-medium-tint);
+  --color-risk-low: var(--risk-low);
+  --color-risk-low-tint: var(--risk-low-tint);
+  --shadow-card: var(--card-shadow);
+  --font-sans: var(--font-inter);
+}
+
+html {
+  scrollbar-color: var(--line) transparent;
 }
 
 body {
   background: var(--page);
   color: var(--ink);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
 }
 
 html:has(dialog[open]) {
   overflow: hidden;
+}
+
+dialog::backdrop {
+  background: rgb(15 17 23 / 0.4);
 }
 
 @keyframes drawer-in {
@@ -58,6 +78,6 @@ html:has(dialog[open]) {
 
 @media (prefers-reduced-motion: no-preference) {
   dialog[open].drawer {
-    animation: drawer-in 180ms ease-out;
+    animation: drawer-in 200ms ease-out;
   }
 }
