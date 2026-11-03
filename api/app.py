@@ -314,10 +314,16 @@ def customers_at_risk():
     return jsonify([
         {
             "customerID": customers["customerID"].iloc[position],
+            "monthly_charges": float(customers["MonthlyCharges"].iloc[position]),
             **describe_customer(encoded.iloc[[position]], probabilities[position]),
         }
         for position in top
     ])
+
+
+@app.get("/metrics")
+def metrics():
+    return jsonify(METRICS)
 
 
 @app.post("/retention-message")

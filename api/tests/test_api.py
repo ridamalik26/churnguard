@@ -154,6 +154,28 @@ def test_at_risk_respects_n(client):
     assert len(client.get("/customers/at-risk?n=3").get_json()) == 3
 
 
+def test_at_risk_includes_monthly_charges_from_data(client):
+    item = client.get("/customers/at-risk?n=1").get_json()[0]
+    customers = api.load_customers().set_index("customerID")
+    assert item["monthly_charges"] == customers.loc[item["customerID"], "MonthlyCharges"]
+
+
+def test_metrics_returns_full_metrics_file(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    saved = json.loads((api.ROOT / "models" / "metrics.json").read_text(encoding="utf-8"))
+    assert response.get_json() == saved
+
+
+def test_metrics_confusion_matrix_agrees_with_saved_metrics(client):
+    data = client.get("/metrics").get_json()
+    matrix = data["xgboost_test_tuned_confusion_matrix"]
+    tuned = data["xgboost_test_tuned_threshold"]
+    tp, fp, fn = matrix["true_positive"], matrix["false_positive"], matrix["false_negative"]
+    assert tp / (tp + fp) == pytest.approx(tuned["precision"])
+    assert tp / (tp + fn) == pytest.approx(tuned["recall"])
+
+
 def test_at_risk_only_returns_active_customers(client):
     returned = client.get(f"/customers/at-risk?n={api.MAX_AT_RISK_COUNT}").get_json()
     customers = api.load_customers().set_index("customerID")
