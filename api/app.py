@@ -39,7 +39,7 @@ BINARY_FIELDS = {"SeniorCitizen"}
 # XGBoost stores features as 32-bit floats, so larger values cannot be scored
 MAX_FEATURE_VALUE = float(np.finfo(np.float32).max)
 
-GROQ_MODEL = "llama3-8b-8192"
+GROQ_MODEL = "openai/gpt-oss-20b"
 GROQ_TIMEOUT_SECONDS = 10
 GROQ_TEMPERATURE = 0.7
 GROQ_MAX_TOKENS = 500
