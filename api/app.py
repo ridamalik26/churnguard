@@ -25,7 +25,7 @@ from explain import DEFAULT_DROPPED_LEVEL, DROPPED_LEVELS, explain_customer
 load_dotenv(ROOT / ".env")
 
 DATA_PATH = ROOT / "data" / "raw" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
-DEFAULT_PORT = 5000
+DEFAULT_PORT = 5053
 
 HIGH_RISK_THRESHOLD = 0.5
 MEDIUM_RISK_THRESHOLD = 0.3

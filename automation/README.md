@@ -31,7 +31,7 @@ From the project root:
 python api/app.py
 ```
 
-The API listens on port 5000 by default. To use another port, set the `PORT` environment variable first, and use that same port in `API_BASE_URL` below.
+The API listens on port 5053 by default. To use another port, set the `PORT` environment variable first, and use that same port in `API_BASE_URL` below.
 
 ## 2. Start n8n with Docker
 
@@ -54,7 +54,7 @@ docker run -it --rm `
   -e TZ="Asia/Karachi" `
   -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true `
   -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false `
-  -e API_BASE_URL="http://host.docker.internal:5000" `
+  -e API_BASE_URL="http://host.docker.internal:5053" `
   -e TEST_EMAIL="you@example.com" `
   -v n8n_data:/home/node/.n8n `
   docker.n8n.io/n8nio/n8n
@@ -71,7 +71,7 @@ docker run -it --rm \
   -e TZ="Asia/Karachi" \
   -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
   -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false \
-  -e API_BASE_URL="http://host.docker.internal:5000" \
+  -e API_BASE_URL="http://host.docker.internal:5053" \
   -e TEST_EMAIL="you@example.com" \
   -v n8n_data:/home/node/.n8n \
   docker.n8n.io/n8nio/n8n
@@ -88,7 +88,7 @@ Why these settings matter:
 If n8n cannot reach the API, the Flask server may be accepting connections only from your machine itself. Stop it and start it on all interfaces instead:
 
 ```
-python -m flask --app api/app.py run --host 0.0.0.0 --port 5000
+python -m flask --app api/app.py run --host 0.0.0.0 --port 5053
 ```
 
 The API has no authentication, so only do this on a network you trust.

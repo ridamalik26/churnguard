@@ -7,7 +7,7 @@ ChurnGuard is a web dashboard for telecom customer retention. It has two pages:
 
 ## Run it locally
 
-The dashboard requires the Flask API to be running at <http://localhost:5000>. From the project root, start it with:
+The dashboard requires the Flask API to be running at <http://localhost:5053>. From the project root, start it with:
 
 ```
 python api/app.py
@@ -16,7 +16,7 @@ python api/app.py
 Then, inside the `web/` folder, create a file named `.env.local` with this line if you do not have one yet:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5053
 ```
 
 Install the dependencies and start the dashboard, also inside the `web/` folder:
