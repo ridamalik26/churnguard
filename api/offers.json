@@ -1,0 +1,19 @@
+{
+  "offers": [
+    {
+      "id": "loyalty-discount",
+      "title": "Loyalty Discount",
+      "description": "Get 15% off your monthly bill for the next 6 months as a thank you for staying with us."
+    },
+    {
+      "id": "free-plan-upgrade",
+      "title": "Free Plan Upgrade",
+      "description": "Move up to the next plan tier at no extra cost for 3 months."
+    },
+    {
+      "id": "referral-bonus",
+      "title": "Referral Bonus",
+      "description": "Receive a $25 bill credit for each friend you refer who signs up for service."
+    }
+  ]
+}
