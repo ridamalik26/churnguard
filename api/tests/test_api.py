@@ -154,6 +154,13 @@ def test_at_risk_respects_n(client):
     assert len(client.get("/customers/at-risk?n=3").get_json()) == 3
 
 
+def test_at_risk_only_returns_active_customers(client):
+    returned = client.get(f"/customers/at-risk?n={api.MAX_AT_RISK_COUNT}").get_json()
+    customers = api.load_customers().set_index("customerID")
+    assert len(returned) == api.MAX_AT_RISK_COUNT
+    assert set(customers.loc[[item["customerID"] for item in returned], "Churn"]) == {"No"}
+
+
 @pytest.mark.parametrize("n", ["abc", "0", "-1", "51", "2.5"])
 def test_at_risk_rejects_bad_n(client, n):
     response = client.get(f"/customers/at-risk?n={n}")
@@ -297,6 +304,7 @@ def test_unknown_route_returns_json_404(client):
 
 def test_top_at_risk_customer_matches_pipeline(client):
     top = client.get("/customers/at-risk?n=1").get_json()[0]
-    customers = api.load_customers().dropna(subset=["TotalCharges"])
+    customers = api.load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
     probabilities = api.PIPELINE.predict_proba(api.encode_customers(customers))[:, 1]
     assert top["churn_probability"] == round(float(np.max(probabilities)), api.PROBABILITY_DECIMALS)

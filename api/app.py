@@ -39,7 +39,7 @@ BINARY_FIELDS = {"SeniorCitizen"}
 # XGBoost stores features as 32-bit floats, so larger values cannot be scored
 MAX_FEATURE_VALUE = float(np.finfo(np.float32).max)
 
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "llama3-8b-8192"
 GROQ_TIMEOUT_SECONDS = 10
 GROQ_TEMPERATURE = 0.7
 GROQ_MAX_TOKENS = 500
@@ -306,7 +306,8 @@ def predict():
 @app.get("/customers/at-risk")
 def customers_at_risk():
     n = parse_at_risk_count(request.args.get("n", str(DEFAULT_AT_RISK_COUNT)))
-    customers = load_customers().dropna(subset=["TotalCharges"])
+    customers = load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
     encoded = encode_customers(customers)
     probabilities = PIPELINE.predict_proba(encoded)[:, 1]
     top = np.argsort(-probabilities, kind="stable")[:n]
