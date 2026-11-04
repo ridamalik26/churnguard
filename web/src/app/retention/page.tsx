@@ -153,7 +153,7 @@ export default function RetentionIntelligencePage() {
   const { state, retry } = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Retention Intelligence"
         subtitle="Pick an at-risk customer to see their churn drivers and generate an AI retention message."

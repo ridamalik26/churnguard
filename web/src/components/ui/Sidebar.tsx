@@ -11,7 +11,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-[240px] shrink-0 overflow-y-auto bg-sidebar-bg md:block">
+    <aside className="hidden h-screen overflow-y-auto bg-sidebar-bg md:flex md:w-[240px] md:flex-shrink-0 md:flex-col">
       <div className="flex items-center gap-2 px-5 pt-6 pb-5">
         <span className="size-4 shrink-0 rounded-[4px] bg-accent" aria-hidden />
         <p className="text-[16px] font-bold tracking-tight text-white">ChurnGuard</p>

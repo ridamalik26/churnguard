@@ -93,7 +93,7 @@ function Dashboard({
   const sampleCaption = `Among the ${customers.length} highest-risk customers`;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <div className="flex flex-col gap-8">
       <PageHeader title="Dashboard" subtitle="A live view of churn risk across the active customer base." />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -79,7 +79,7 @@ function Segments({ summary, sampleSize }: { summary: CustomerSummary; sampleSiz
   const [active, setActive] = useState<RiskLevel>("high");
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8">
+    <div className="flex flex-col gap-8">
       <PageHeader title="Customer Segments" subtitle={`${summary.total_customers} active customers grouped by churn risk.`} />
 
       <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">

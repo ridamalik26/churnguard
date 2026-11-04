@@ -126,7 +126,7 @@ export default function ModelPerformancePage() {
   const { state, retry } = useApiData<ModelMetrics>("/metrics");
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-10">
+    <div className="flex flex-col gap-10">
       <PageHeader title="Model Performance" subtitle="Results on the held-out test set." />
 
       {state.status === "loading" && <LoadingSpinner label="Loading metrics" />}
