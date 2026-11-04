@@ -1,0 +1,126 @@
+"use client";
+
+import clsx from "clsx";
+import { MailOpen, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ReasonsChart } from "@/components/reasons-chart";
+import { RetentionPanel } from "@/components/retention-panel";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { RiskBadge } from "@/components/ui/RiskBadge";
+import type { AtRiskCustomer } from "@/lib/api";
+import { useApiData } from "@/lib/use-api-data";
+
+const SAMPLE_SIZE = 20;
+
+function formatProbability(probability: number) {
+  return `${(probability * 100).toFixed(2)}%`;
+}
+
+function CustomerPicker({
+  customers,
+  selected,
+  onSelect,
+}: {
+  customers: AtRiskCustomer[];
+  selected: AtRiskCustomer | null;
+  onSelect: (customer: AtRiskCustomer) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return query ? customers.filter((customer) => customer.customerID.toLowerCase().includes(query)) : customers;
+  }, [customers, search]);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-card">
+      <div className="relative">
+        <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-secondary" />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search customer ID"
+          aria-label="Search customer ID"
+          className="w-full rounded-button border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text-primary outline-none focus-visible:border-accent"
+        />
+      </div>
+      <ul className="flex max-h-[420px] flex-col divide-y divide-border overflow-y-auto">
+        {filtered.length === 0 && <li className="py-8 text-center text-text-secondary">No customers match.</li>}
+        {filtered.map((customer) => (
+          <li key={customer.customerID}>
+            <button
+              type="button"
+              onClick={() => onSelect(customer)}
+              className={clsx(
+                "flex w-full items-center justify-between gap-2 py-2.5 text-left transition-colors hover:text-accent",
+                selected?.customerID === customer.customerID && "font-medium text-accent",
+              )}
+            >
+              <span className="min-w-0 flex-1 truncate">{customer.customerID}</span>
+              <RiskBadge level={customer.risk_level} />
+              <span className="w-16 shrink-0 text-right tabular-nums text-text-secondary">
+                {formatProbability(customer.churn_probability)}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RetentionWorkspace({ customer }: { customer: AtRiskCustomer | null }) {
+  if (!customer) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center rounded-card bg-surface p-5 shadow-card">
+        <EmptyState
+          icon={MailOpen}
+          title="No customer selected"
+          description="Pick a customer from the list to see their churn drivers and generate a retention message."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 rounded-card bg-surface p-5 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-semibold tracking-tight break-all text-text-primary">{customer.customerID}</h2>
+        <RiskBadge level={customer.risk_level} />
+      </div>
+
+      <section className="flex flex-col gap-3">
+        <h3 className="text-text-secondary">Why this customer is at risk</h3>
+        <ReasonsChart reasons={customer.top_reasons} />
+      </section>
+
+      <RetentionPanel customerId={customer.customerID} />
+    </div>
+  );
+}
+
+export default function RetentionIntelligencePage() {
+  const { state, retry } = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
+  const [selected, setSelected] = useState<AtRiskCustomer | null>(null);
+
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <PageHeader
+        title="Retention Intelligence"
+        subtitle="Pick an at-risk customer to see their churn drivers and generate an AI retention message."
+      />
+
+      {state.status === "loading" && <LoadingSpinner label="Loading customers" />}
+      {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
+      {state.status === "ready" && (
+        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+          <CustomerPicker customers={state.data} selected={selected} onSelect={setSelected} />
+          <RetentionWorkspace customer={selected} />
+        </div>
+      )}
+    </div>
+  );
+}

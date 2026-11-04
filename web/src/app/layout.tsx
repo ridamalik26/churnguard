@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { AppSidebar } from "@/components/app-sidebar";
-import { MobileNav } from "@/components/mobile-nav";
+import { Sidebar } from "@/components/ui/Sidebar";
+import { TopNav } from "@/components/ui/TopNav";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -21,11 +21,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full">
+      <body className="min-h-full bg-bg">
         <div className="flex min-h-dvh flex-col md:flex-row">
-          <AppSidebar />
-          <MobileNav />
-          <main className="min-w-0 flex-1 px-4 py-6 md:px-10 md:py-10">{children}</main>
+          <Sidebar />
+          <TopNav />
+          <main className="min-w-0 flex-1 bg-bg px-4 py-6 md:px-10 md:py-10">{children}</main>
         </div>
       </body>
     </html>

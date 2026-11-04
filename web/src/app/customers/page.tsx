@@ -1,73 +1,86 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/button";
-import { CustomerDrawer } from "@/components/customer-drawer";
-import { RiskBadge } from "@/components/risk-badge";
-import { ErrorNotice, LoadingNotice } from "@/components/status-notice";
-import type { AtRiskCustomer } from "@/lib/api";
+import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CUSTOMER_COLUMNS } from "@/components/customer-columns";
+import { DataTable } from "@/components/ui/DataTable";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PageHeader } from "@/components/ui/PageHeader";
+import type { AtRiskCustomer, RiskLevel } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
-const AT_RISK_COUNT = 50;
+const SAMPLE_SIZE = 50;
 
-const HEADER_CELL = "px-3 py-2.5 text-xs font-medium whitespace-nowrap first:pl-0 last:pr-0";
-const BODY_CELL = "px-3 py-3 first:pl-0 last:pr-0";
-const NUMBER_CELL = "text-right tabular-nums";
+const RISK_FILTERS: { value: RiskLevel | "all"; label: string }[] = [
+  { value: "all", label: "All risk levels" },
+  { value: "high", label: "High risk" },
+  { value: "medium", label: "Medium risk" },
+  { value: "low", label: "Low risk" },
+];
 
-function formatProbability(probability: number) {
-  return `${(probability * 100).toFixed(2)}%`;
+function CustomersTable({ customers }: { customers: AtRiskCustomer[] }) {
+  const [search, setSearch] = useState("");
+  const [riskFilter, setRiskFilter] = useState<RiskLevel | "all">("all");
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return customers.filter((customer) => {
+      if (riskFilter !== "all" && customer.risk_level !== riskFilter) return false;
+      if (query && !customer.customerID.toLowerCase().includes(query)) return false;
+      return true;
+    });
+  }, [customers, search, riskFilter]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-secondary" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search customer ID"
+            aria-label="Search customer ID"
+            className="w-full rounded-button border border-border bg-surface py-2 pl-9 pr-3 text-sm text-text-primary outline-none focus-visible:border-accent"
+          />
+        </div>
+        <select
+          value={riskFilter}
+          onChange={(event) => setRiskFilter(event.target.value as RiskLevel | "all")}
+          aria-label="Filter by risk level"
+          className="rounded-button border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
+        >
+          {RISK_FILTERS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <DataTable
+        columns={CUSTOMER_COLUMNS}
+        rows={filtered}
+        rowKey={(c) => c.customerID}
+        paginate
+        emptyMessage="No customers match your filters."
+      />
+    </div>
+  );
 }
 
 export default function AtRiskCustomersPage() {
-  const { state, retry } = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${AT_RISK_COUNT}`);
-  const [selected, setSelected] = useState<AtRiskCustomer | null>(null);
+  const { state, retry } = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <div>
-        <h1 className="text-[22px] font-semibold tracking-tight">At-Risk Customers</h1>
-        <p className="mt-1 text-ink-secondary">Active customers with the highest predicted churn risk.</p>
-      </div>
+      <PageHeader title="At-Risk Customers" subtitle={`The ${SAMPLE_SIZE} active customers with the highest predicted churn risk.`} />
 
-      {state.status === "loading" && <LoadingNotice label="Loading customers" />}
-      {state.status === "error" && <ErrorNotice message={state.message} onRetry={retry} />}
-      {state.status === "ready" && state.data.length === 0 && (
-        <p className="py-16 text-center text-ink-secondary">No at-risk customers found.</p>
-      )}
-      {state.status === "ready" && state.data.length > 0 && (
-        <div className="relative overflow-x-auto">
-          <table className="w-full">
-            <thead className="text-left text-ink-secondary">
-              <tr className="border-b border-line">
-                <th scope="col" className={HEADER_CELL}>Customer ID</th>
-                <th scope="col" className={`${HEADER_CELL} text-right`}>Monthly Charges</th>
-                <th scope="col" className={HEADER_CELL}>Risk Level</th>
-                <th scope="col" className={`${HEADER_CELL} text-right`}>Churn Probability</th>
-                <th scope="col" className={HEADER_CELL}>
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.data.map((customer) => (
-                <tr key={customer.customerID} className="border-b border-line">
-                  <td className={`${BODY_CELL} font-medium whitespace-nowrap`}>{customer.customerID}</td>
-                  <td className={`${BODY_CELL} ${NUMBER_CELL}`}>{customer.monthly_charges.toFixed(2)}</td>
-                  <td className={BODY_CELL}>
-                    <RiskBadge level={customer.risk_level} />
-                  </td>
-                  <td className={`${BODY_CELL} ${NUMBER_CELL}`}>{formatProbability(customer.churn_probability)}</td>
-                  <td className={`${BODY_CELL} text-right`}>
-                    <Button onClick={() => setSelected(customer)}>View Details</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {selected && <CustomerDrawer key={selected.customerID} customer={selected} onClose={() => setSelected(null)} />}
+      {state.status === "loading" && <LoadingSpinner label="Loading customers" />}
+      {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
+      {state.status === "ready" && <CustomersTable customers={state.data} />}
     </div>
   );
 }

@@ -13,6 +13,38 @@ export type RetentionMessage = {
   body: string;
 };
 
+export type HealthStatus = {
+  status: string;
+  timestamp: string;
+};
+
+export type ProbabilityBucket = {
+  range: string;
+  count: number;
+};
+
+export type CustomerSummary = {
+  total_customers: number;
+  risk_counts: Record<RiskLevel, number>;
+  avg_churn_probability: number;
+  revenue_at_risk: number;
+  probability_distribution: ProbabilityBucket[];
+};
+
+export type CustomerDetail = AtRiskCustomer & {
+  total_charges: number;
+  tenure: number;
+  contract: string;
+  payment_method: string;
+  paperless_billing: string;
+  internet_service: string;
+  phone_service: string;
+  gender: string;
+  senior_citizen: boolean;
+  partner: string;
+  dependents: string;
+};
+
 export type MetricKey = "roc_auc" | "pr_auc" | "precision" | "recall" | "f1";
 
 export type MetricSet = Record<MetricKey, number>;
