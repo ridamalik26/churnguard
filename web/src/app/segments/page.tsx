@@ -83,7 +83,7 @@ function Segments({ summary, sampleSize }: { summary: CustomerSummary; sampleSiz
       <PageHeader title="Customer Segments" subtitle={`${summary.total_customers} active customers grouped by churn risk.`} />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-        <section className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-card">
+        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
           <h2 className="font-semibold tracking-tight text-text-primary">Distribution</h2>
           <RiskDistributionChart counts={summary.risk_counts} />
         </section>
@@ -94,12 +94,13 @@ function Segments({ summary, sampleSize }: { summary: CustomerSummary; sampleSiz
               label={label}
               value={summary.risk_counts[level].toLocaleString()}
               subtitle={`${((summary.risk_counts[level] / summary.total_customers) * 100).toFixed(1)}% of customers`}
+              leftBorderTone={level}
             />
           ))}
         </section>
       </div>
 
-      <section className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-card">
+      <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
         <SegmentTabs active={active} onChange={setActive} counts={summary.risk_counts} />
         <SegmentCustomers key={active} level={active} sampleSize={sampleSize} />
       </section>

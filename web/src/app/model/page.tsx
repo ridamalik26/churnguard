@@ -7,12 +7,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import type { ConfusionMatrix, MetricKey, ModelMetrics } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
-const METRIC_LABELS: { key: MetricKey; label: string }[] = [
-  { key: "roc_auc", label: "ROC-AUC" },
-  { key: "pr_auc", label: "PR-AUC" },
-  { key: "precision", label: "Precision" },
-  { key: "recall", label: "Recall" },
-  { key: "f1", label: "F1" },
+const METRIC_LABELS: { key: MetricKey; label: string; borderColor: string }[] = [
+  { key: "roc_auc", label: "ROC-AUC", borderColor: "var(--accent)" },
+  { key: "pr_auc", label: "PR-AUC", borderColor: "var(--warning)" },
+  { key: "precision", label: "Precision", borderColor: "var(--teal)" },
+  { key: "recall", label: "Recall", borderColor: "var(--indigo)" },
+  { key: "f1", label: "F1", borderColor: "var(--success)" },
 ];
 
 const METRIC_DECIMALS = 4;
@@ -37,10 +37,14 @@ function SectionHeading({ title, description }: { title: string; description: st
 function SummaryCards({ metrics }: { metrics: ModelMetrics }) {
   return (
     <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-      {METRIC_LABELS.map(({ key, label }) => (
-        <div key={key} className="rounded-card bg-surface p-5 shadow-card">
-          <dt className="text-text-secondary">{label}</dt>
-          <dd className="mt-2 text-[32px] leading-none font-semibold tracking-tight text-accent">
+      {METRIC_LABELS.map(({ key, label, borderColor }) => (
+        <div
+          key={key}
+          className="rounded-card border border-border bg-surface p-5 shadow-card"
+          style={{ borderTopWidth: 3, borderTopColor: borderColor }}
+        >
+          <dt className="text-xs font-medium text-text-secondary">{label}</dt>
+          <dd className="mt-2 text-[32px] leading-none font-semibold tracking-tight text-text-primary">
             {formatMetric(metrics.xgboost_test_tuned_threshold[key])}
           </dd>
         </div>
@@ -51,8 +55,13 @@ function SummaryCards({ metrics }: { metrics: ModelMetrics }) {
 
 function MatrixCell({ label, value, correct }: { label: string; value: number; correct: boolean }) {
   return (
-    <div className={clsx("rounded-button p-4 text-center text-text-primary", correct ? "bg-success-tint" : "bg-danger-tint")}>
-      <p className="text-[22px] font-semibold">{value}</p>
+    <div
+      className={clsx(
+        "flex min-h-[120px] min-w-[120px] flex-col items-center justify-center rounded-button p-4 text-center text-text-primary",
+        correct ? "bg-success-tint" : "bg-danger-tint",
+      )}
+    >
+      <p className="text-[36px] font-extrabold">{value}</p>
       <p className="mt-1 text-xs">{label}</p>
     </div>
   );
@@ -60,7 +69,7 @@ function MatrixCell({ label, value, correct }: { label: string; value: number; c
 
 function ConfusionMatrixGrid({ matrix }: { matrix: ConfusionMatrix }) {
   return (
-    <div className="max-w-xl rounded-card bg-surface p-5 shadow-card">
+    <div className="max-w-xl rounded-card border border-border bg-surface p-5 shadow-card">
       <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-2">
         <span />
         <span className="text-center text-xs font-medium text-text-secondary">Predicted: stayed</span>
@@ -91,15 +100,15 @@ function ComparisonTable({ metrics }: { metrics: ModelMetrics }) {
           </tr>
         </thead>
         <tbody>
-          {METRIC_LABELS.map(({ key, label }) => (
-            <tr key={key} className="border-b border-border text-text-primary">
+          {METRIC_LABELS.map(({ key, label }, index) => (
+            <tr key={key} className={clsx("border-b border-border text-text-primary", index % 2 === 1 && "bg-surface-raised")}>
               <th scope="row" className={ROW_LABEL}>{label}</th>
               <td className={VALUE_CELL}>{formatMetric(metrics.logistic_regression_test[key])}</td>
               <td className={VALUE_CELL}>{formatMetric(metrics.xgboost_test_default_threshold[key])}</td>
               <td className={VALUE_CELL}>{formatMetric(metrics.xgboost_test_tuned_threshold[key])}</td>
             </tr>
           ))}
-          <tr className="border-b border-border text-text-primary">
+          <tr className={clsx("border-b border-border text-text-primary", METRIC_LABELS.length % 2 === 1 && "bg-surface-raised")}>
             <th scope="row" className={ROW_LABEL}>Cross-validated ROC-AUC</th>
             <td className={VALUE_CELL}>{formatMetric(metrics.cv_mean_roc_auc.logistic_regression)}</td>
             <td className={VALUE_CELL}>{formatMetric(metrics.cv_mean_roc_auc.xgboost)}</td>

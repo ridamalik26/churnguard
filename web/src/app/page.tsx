@@ -55,7 +55,7 @@ const TOP_CUSTOMER_COLUMNS: Column<AtRiskCustomer>[] = [
 function ModelPerformanceSummary({ metrics }: { metrics: ModelMetrics }) {
   const tuned = metrics.xgboost_test_tuned_threshold;
   return (
-    <div className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-card">
+    <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-card">
       <h2 className="font-semibold tracking-tight text-text-primary">Model Performance Summary</h2>
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {([
@@ -65,8 +65,8 @@ function ModelPerformanceSummary({ metrics }: { metrics: ModelMetrics }) {
           ["F1", tuned.f1],
         ] as const).map(([label, value]) => (
           <div key={label}>
-            <dt className="text-text-secondary">{label}</dt>
-            <dd className="mt-1 text-xl font-semibold tracking-tight text-text-primary">{value.toFixed(3)}</dd>
+            <dd className="text-[20px] font-bold tracking-tight text-accent">{value.toFixed(3)}</dd>
+            <dt className="mt-1 text-[11px] text-text-secondary">{label}</dt>
           </div>
         ))}
       </dl>
@@ -102,14 +102,33 @@ function Dashboard({
           value={summary.total_customers.toLocaleString()}
           subtitle="Across the full active customer base"
           icon={Users}
+          tone="accent"
         />
-        <StatCard label="At-Risk Customers" value={atRiskCount.toLocaleString()} subtitle={sampleCaption} icon={TrendingUp} />
-        <StatCard label="High-Risk Customers" value={riskCounts.high.toLocaleString()} subtitle={sampleCaption} icon={AlertTriangle} />
-        <StatCard label="Avg. Churn Probability" value={PERCENT.format(avgProbability)} subtitle={sampleCaption} icon={Activity} />
+        <StatCard
+          label="At-Risk Customers"
+          value={atRiskCount.toLocaleString()}
+          subtitle={sampleCaption}
+          icon={TrendingUp}
+          tone="medium"
+        />
+        <StatCard
+          label="High-Risk Customers"
+          value={riskCounts.high.toLocaleString()}
+          subtitle={sampleCaption}
+          icon={AlertTriangle}
+          tone="high"
+        />
+        <StatCard
+          label="Avg. Churn Probability"
+          value={PERCENT.format(avgProbability)}
+          subtitle={sampleCaption}
+          icon={Activity}
+          tone="accent"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-card">
+        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
           <div>
             <h2 className="font-semibold tracking-tight text-text-primary">Risk Distribution</h2>
             <p className="mt-1 text-text-secondary">{sampleCaption}.</p>
@@ -117,7 +136,7 @@ function Dashboard({
           <RiskDistributionChart counts={riskCounts} />
         </section>
 
-        <section className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-card">
+        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
           <div>
             <h2 className="font-semibold tracking-tight text-text-primary">Churn Probability Distribution</h2>
             <p className="mt-1 text-text-secondary">{sampleCaption}, grouped in 10 percent bands.</p>
@@ -127,7 +146,7 @@ function Dashboard({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-4 rounded-card bg-surface p-5 shadow-card">
+        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
           <h2 className="font-semibold tracking-tight text-text-primary">Top 5 Highest Risk Customers</h2>
           <DataTable columns={TOP_CUSTOMER_COLUMNS} rows={topCustomers} rowKey={(c) => c.customerID} />
         </section>

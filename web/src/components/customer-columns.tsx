@@ -20,7 +20,7 @@ export const CUSTOMER_COLUMNS: Column<AtRiskCustomer>[] = [
     header: "Monthly Charges",
     align: "right",
     sortValue: (c) => c.monthly_charges,
-    render: (c) => c.monthly_charges.toFixed(2),
+    render: (c) => `$${c.monthly_charges.toFixed(2)}`,
   },
   { key: "risk_level", header: "Risk Level", render: (c) => <RiskBadge level={c.risk_level} /> },
   {
@@ -36,7 +36,7 @@ export const CUSTOMER_COLUMNS: Column<AtRiskCustomer>[] = [
     align: "right",
     render: (c) => (
       <Link href={`/customers/${c.customerID}`}>
-        <Button>View Profile</Button>
+        <Button variant="outline-accent">View Profile</Button>
       </Link>
     ),
   },

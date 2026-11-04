@@ -89,7 +89,7 @@ export function DataTable<T>({
                       )}
                     >
                       {column.header}
-                      {sortKey === column.key && <span className="text-[10px] uppercase">{sortDir}</span>}
+                      {sortKey === column.key && <span className="text-[10px]">{sortDir}</span>}
                     </button>
                   ) : (
                     column.header
@@ -100,7 +100,7 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {pageRows.map((row) => (
-              <tr key={rowKey(row)} className="border-b border-border transition-colors hover:bg-surface-raised">
+              <tr key={rowKey(row)} className="h-12 border-b border-border transition-colors hover:bg-surface-raised">
                 {columns.map((column) => (
                   <td key={column.key} className={clsx(BODY_CELL, column.align === "right" && "text-right tabular-nums")}>
                     {column.render(row)}
@@ -113,7 +113,7 @@ export function DataTable<T>({
       </div>
 
       {paginate && (
-        <div className="flex items-center justify-between text-text-secondary">
+        <div className="flex flex-col items-center gap-2 text-text-secondary">
           <p>
             Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, sorted.length)} of {sorted.length}
           </p>

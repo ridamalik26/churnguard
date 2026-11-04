@@ -2,7 +2,7 @@ import clsx from "clsx";
 import type { ButtonHTMLAttributes } from "react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "solid" | "outline" | "ghost";
+  variant?: "solid" | "outline" | "outline-accent" | "ghost";
 };
 
 export function Button({ variant = "outline", className, ...props }: ButtonProps) {
@@ -15,6 +15,7 @@ export function Button({ variant = "outline", className, ...props }: ButtonProps
         "disabled:cursor-not-allowed disabled:opacity-60",
         variant === "solid" && "bg-accent px-4 py-2 text-on-accent hover:bg-accent-hover",
         variant === "outline" && "border border-border px-3 py-1.5 text-text-secondary hover:border-accent hover:text-accent",
+        variant === "outline-accent" && "border border-accent px-2.5 py-1 text-xs text-accent hover:bg-accent-light",
         variant === "ghost" && "px-3 py-1.5 text-text-secondary hover:text-text-primary",
         className,
       )}

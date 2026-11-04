@@ -35,7 +35,7 @@ function CustomerPicker({
   }, [customers, search]);
 
   return (
-    <div className="flex flex-col gap-3 rounded-card bg-surface p-5 shadow-card">
+    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5 shadow-card">
       <div className="relative">
         <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-secondary" />
         <input
@@ -47,26 +47,31 @@ function CustomerPicker({
           className="w-full rounded-button border border-border bg-bg py-2 pl-9 pr-3 text-sm text-text-primary outline-none focus-visible:border-accent"
         />
       </div>
-      <ul className="flex max-h-[420px] flex-col divide-y divide-border overflow-y-auto">
+      <ul className="flex max-h-[420px] flex-col overflow-y-auto">
         {filtered.length === 0 && <li className="py-8 text-center text-text-secondary">No customers match.</li>}
-        {filtered.map((customer) => (
-          <li key={customer.customerID}>
-            <button
-              type="button"
-              onClick={() => onSelect(customer)}
-              className={clsx(
-                "flex w-full items-center justify-between gap-2 py-2.5 text-left transition-colors hover:text-accent",
-                selected?.customerID === customer.customerID && "font-medium text-accent",
-              )}
-            >
-              <span className="min-w-0 flex-1 truncate">{customer.customerID}</span>
-              <RiskBadge level={customer.risk_level} />
-              <span className="w-16 shrink-0 text-right tabular-nums text-text-secondary">
-                {formatProbability(customer.churn_probability)}
-              </span>
-            </button>
-          </li>
-        ))}
+        {filtered.map((customer) => {
+          const isSelected = selected?.customerID === customer.customerID;
+          return (
+            <li key={customer.customerID}>
+              <button
+                type="button"
+                onClick={() => onSelect(customer)}
+                className={clsx(
+                  "flex h-11 w-full items-center gap-2 border-l-[3px] pr-2 pl-2 text-left transition-colors",
+                  isSelected
+                    ? "border-l-accent bg-accent-light font-medium text-accent"
+                    : "border-l-transparent text-text-primary hover:bg-surface-raised",
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">{customer.customerID}</span>
+                <RiskBadge level={customer.risk_level} />
+                <span className="w-16 shrink-0 text-right tabular-nums text-text-secondary">
+                  {formatProbability(customer.churn_probability)}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -75,9 +80,10 @@ function CustomerPicker({
 function RetentionWorkspace({ customer }: { customer: AtRiskCustomer | null }) {
   if (!customer) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center rounded-card bg-surface p-5 shadow-card">
+      <div className="flex min-h-[300px] items-center justify-center rounded-card border border-border bg-surface p-5 shadow-card">
         <EmptyState
           icon={MailOpen}
+          size="large"
           title="No customer selected"
           description="Pick a customer from the list to see their churn drivers and generate a retention message."
         />
@@ -86,7 +92,7 @@ function RetentionWorkspace({ customer }: { customer: AtRiskCustomer | null }) {
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-card bg-surface p-5 shadow-card">
+    <div className="flex flex-col gap-6 rounded-card border border-border bg-surface p-5 shadow-card">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold tracking-tight break-all text-text-primary">{customer.customerID}</h2>
         <RiskBadge level={customer.risk_level} />

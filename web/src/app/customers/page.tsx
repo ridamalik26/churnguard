@@ -19,6 +19,15 @@ const RISK_FILTERS: { value: RiskLevel | "all"; label: string }[] = [
   { value: "low", label: "Low risk" },
 ];
 
+function StatChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2">
+      <span className="font-bold text-text-primary">{value}</span>
+      <span className="text-xs text-text-secondary">{label}</span>
+    </div>
+  );
+}
+
 function CustomersTable({ customers }: { customers: AtRiskCustomer[] }) {
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "all">("all");
@@ -32,8 +41,19 @@ function CustomersTable({ customers }: { customers: AtRiskCustomer[] }) {
     });
   }, [customers, search, riskFilter]);
 
+  const highRiskCount = customers.filter((c) => c.risk_level === "high").length;
+  const avgProbability = customers.length
+    ? customers.reduce((sum, c) => sum + c.churn_probability, 0) / customers.length
+    : 0;
+
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-3">
+        <StatChip label="total shown" value={customers.length.toLocaleString()} />
+        <StatChip label="high risk" value={highRiskCount.toLocaleString()} />
+        <StatChip label="avg probability" value={`${(avgProbability * 100).toFixed(1)}%`} />
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-secondary" />

@@ -21,7 +21,14 @@
   --warning-tint: rgb(245 158 11 / 0.12);
   --danger: #EF4444;
   --danger-tint: rgb(239 68 68 / 0.12);
-  --card-shadow: 0 1px 3px rgb(13 15 20 / 0.06);
+  --teal: #14B8A6;
+  --indigo: #6366F1;
+  --card-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+  --sidebar-bg: #0D0F14;
+  --sidebar-text: #8B92A5;
+  --sidebar-muted: #4E5566;
+  --sidebar-active-bg: #1E1B4B;
+  --sidebar-active-text: #7C6EF5;
 }
 
 :root[data-theme="dark"] {
@@ -56,6 +63,13 @@
   --color-warning-tint: var(--warning-tint);
   --color-danger: var(--danger);
   --color-danger-tint: var(--danger-tint);
+  --color-teal: var(--teal);
+  --color-indigo: var(--indigo);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-text: var(--sidebar-active-text);
   --shadow-card: var(--card-shadow);
   --font-sans: var(--font-inter);
   --radius-card: 12px;
