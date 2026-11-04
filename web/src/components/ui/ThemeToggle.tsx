@@ -4,49 +4,38 @@ import clsx from "clsx";
 import { Moon, Sun } from "lucide-react";
 import { setDarkTheme, useIsDarkTheme } from "@/lib/theme";
 
-export function ThemeToggle({ variant = "default" }: { variant?: "default" | "sidebar" }) {
+export function ThemeToggle() {
   const isDark = useIsDarkTheme();
-  const onSidebar = variant === "sidebar";
 
   return (
-    <div
-      className={clsx(
-        "inline-flex w-full rounded-full border p-1",
-        onSidebar ? "border-white/10" : "border-border",
-      )}
+    <button
+      type="button"
+      onClick={() => setDarkTheme(!isDark)}
+      aria-pressed={isDark}
+      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      className="relative h-8 w-20 shrink-0 rounded-full bg-toggle-track transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
-      <button
-        type="button"
-        onClick={() => setDarkTheme(false)}
-        aria-pressed={!isDark}
-        aria-label="Light theme"
+      <span
         className={clsx(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 transition-colors",
-          !isDark
-            ? "bg-accent text-on-accent"
-            : onSidebar
-              ? "text-sidebar-text hover:text-white"
-              : "text-text-secondary hover:text-text-primary",
+          "absolute top-1 size-6 rounded-full bg-white shadow transition-all duration-200",
+          isDark ? "left-[52px]" : "left-1",
         )}
-      >
-        <Sun aria-hidden className="size-3.5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setDarkTheme(true)}
-        aria-pressed={isDark}
-        aria-label="Dark theme"
+        aria-hidden
+      />
+      <Sun
+        aria-hidden
         className={clsx(
-          "flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 transition-colors",
-          isDark
-            ? "bg-accent text-on-accent"
-            : onSidebar
-              ? "text-sidebar-text hover:text-white"
-              : "text-text-secondary hover:text-text-primary",
+          "absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 transition-colors",
+          !isDark ? "text-[#1E2130]" : "text-[#6B7280]",
         )}
-      >
-        <Moon aria-hidden className="size-3.5" />
-      </button>
-    </div>
+      />
+      <Moon
+        aria-hidden
+        className={clsx(
+          "absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 transition-colors",
+          isDark ? "text-[#1E2130]" : "text-[#6B7280]",
+        )}
+      />
+    </button>
   );
 }

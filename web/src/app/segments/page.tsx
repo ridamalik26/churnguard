@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { Search } from "lucide-react";
 import { useState } from "react";
 import { CUSTOMER_COLUMNS } from "@/components/customer-columns";
-import { RiskDistributionChart } from "@/components/risk-distribution-chart";
+import { SegmentTrendChart } from "@/components/segment-trend-chart";
 import { DataTable } from "@/components/ui/DataTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -82,23 +82,25 @@ function Segments({ summary, sampleSize }: { summary: CustomerSummary; sampleSiz
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
       <PageHeader title="Customer Segments" subtitle={`${summary.total_customers} active customers grouped by churn risk.`} />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-          <h2 className="font-semibold tracking-tight text-text-primary">Distribution</h2>
-          <RiskDistributionChart counts={summary.risk_counts} />
-        </section>
-        <section className="grid grid-cols-3 gap-4">
-          {SEGMENTS.map(({ level, label }) => (
-            <StatCard
-              key={level}
-              label={label}
-              value={summary.risk_counts[level].toLocaleString()}
-              subtitle={`${((summary.risk_counts[level] / summary.total_customers) * 100).toFixed(1)}% of customers`}
-              leftBorderTone={level}
-            />
-          ))}
-        </section>
-      </div>
+      <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+        <div>
+          <h2 className="font-semibold tracking-tight text-text-primary">Monthly Churn Rate by Segment</h2>
+          <p className="mt-1 text-text-secondary">Illustrative simulated trend, 6 months, not a live time series.</p>
+        </div>
+        <SegmentTrendChart />
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {SEGMENTS.map(({ level, label }) => (
+          <StatCard
+            key={level}
+            label={label}
+            value={summary.risk_counts[level].toLocaleString()}
+            subtitle={`${((summary.risk_counts[level] / summary.total_customers) * 100).toFixed(1)}% of customers`}
+            leftBorderTone={level}
+          />
+        ))}
+      </section>
 
       <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
         <SegmentTabs active={active} onChange={setActive} counts={summary.risk_counts} />

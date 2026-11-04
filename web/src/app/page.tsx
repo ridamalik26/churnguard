@@ -7,8 +7,8 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RiskBadge } from "@/components/ui/RiskBadge";
 import { StatCard } from "@/components/ui/StatCard";
+import { ChurnTrendChart } from "@/components/churn-trend-chart";
 import { ProbabilityDistributionChart } from "@/components/probability-distribution-chart";
-import { RiskDistributionChart } from "@/components/risk-distribution-chart";
 import type { AtRiskCustomer, CustomerSummary, ModelMetrics, ProbabilityBucket, RiskLevel } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
@@ -130,10 +130,10 @@ function Dashboard({
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
           <div>
-            <h2 className="font-semibold tracking-tight text-text-primary">Risk Distribution</h2>
-            <p className="mt-1 text-text-secondary">{sampleCaption}.</p>
+            <h2 className="font-semibold tracking-tight text-text-primary">Churn Risk Trend</h2>
+            <p className="mt-1 text-text-secondary">Illustrative trend based on model predictions. Simulated monthly data, not a live time series.</p>
           </div>
-          <RiskDistributionChart counts={riskCounts} />
+          <ChurnTrendChart />
         </section>
 
         <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">

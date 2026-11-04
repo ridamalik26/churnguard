@@ -17,9 +17,7 @@ export function Topbar() {
   return (
     <header className="hidden h-14 shrink-0 items-center justify-between border-b border-border bg-bg px-10 md:flex">
       <p className="font-semibold text-text-primary">{pageTitle(pathname)}</p>
-      <div className="w-[88px]">
-        <ThemeToggle />
-      </div>
+      <ThemeToggle />
     </header>
   );
 }

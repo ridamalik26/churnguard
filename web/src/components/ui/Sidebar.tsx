@@ -11,7 +11,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[240px] shrink-0 flex-col bg-sidebar-bg md:flex">
+    <aside className="fixed top-0 left-0 hidden h-dvh w-[240px] flex-col bg-sidebar-bg md:flex">
       <div className="flex items-center gap-2 px-5 pt-6 pb-5">
         <span className="size-4 shrink-0 rounded-[4px] bg-accent" aria-hidden />
         <p className="text-[16px] font-bold tracking-tight text-white">ChurnGuard</p>
@@ -30,9 +30,11 @@ export function Sidebar() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={clsx(
-                    "flex h-9 items-center gap-2 rounded-button px-3 transition-colors",
+                    "flex h-9 items-center gap-2 rounded-r-button border-l-2 px-3 transition-colors",
                     "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent",
-                    active ? "bg-sidebar-active-bg text-sidebar-active-text" : "text-sidebar-text hover:text-white",
+                    active
+                      ? "border-l-sidebar-active-border bg-sidebar-active-bg text-sidebar-active-text"
+                      : "border-l-transparent text-sidebar-text hover:text-white",
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
@@ -44,8 +46,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-3 px-3 py-4">
-        <ThemeToggle variant="sidebar" />
+      <div className="mt-auto flex flex-col items-center gap-3 px-3 py-4">
+        <ThemeToggle />
         <p className="px-1 text-[11px] text-sidebar-muted">
           <HostLabel />
         </p>

@@ -35,7 +35,7 @@ export const CUSTOMER_COLUMNS: Column<AtRiskCustomer>[] = [
     header: "",
     align: "right",
     render: (c) => (
-      <Link href={`/customers/${c.customerID}`}>
+      <Link href={`/customers?customer=${encodeURIComponent(c.customerID)}`}>
         <Button variant="outline-accent">View Profile</Button>
       </Link>
     ),

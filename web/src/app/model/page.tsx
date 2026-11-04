@@ -1,6 +1,8 @@
 "use client";
 
 import clsx from "clsx";
+import { PredictionDistributionChart } from "@/components/prediction-distribution-chart";
+import { RocCurveChart } from "@/components/roc-curve-chart";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -139,6 +141,23 @@ export default function ModelPerformancePage() {
             <SummaryCards metrics={state.data} />
           </section>
 
+          <section className="grid gap-4 lg:grid-cols-2">
+            <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+              <SectionHeading
+                title="Prediction Distribution"
+                description="Illustrative bell-curve densities, not the model's actual per-customer predictions."
+              />
+              <PredictionDistributionChart />
+            </div>
+            <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+              <SectionHeading
+                title="ROC Curve"
+                description={`Illustrative curve shaped to match the model's real ROC-AUC of ${formatMetric(state.data.xgboost_test_tuned_threshold.roc_auc)}. Per-threshold points are not saved by training.`}
+              />
+              <RocCurveChart rocAuc={state.data.xgboost_test_tuned_threshold.roc_auc} />
+            </div>
+          </section>
+
           <section className="flex flex-col gap-4">
             <SectionHeading title="Confusion Matrix" description="XGBoost test set predictions at the tuned threshold." />
             <ConfusionMatrixGrid matrix={state.data.xgboost_test_tuned_confusion_matrix} />
@@ -147,13 +166,6 @@ export default function ModelPerformancePage() {
           <section className="flex flex-col gap-4">
             <SectionHeading title="Logistic Regression vs XGBoost" description="All saved metrics side by side." />
             <ComparisonTable metrics={state.data} />
-          </section>
-
-          <section className="flex flex-col gap-4">
-            <SectionHeading
-              title="ROC and Precision-Recall Curves"
-              description="Not available: the saved model metrics include summary scores and the confusion matrix, but not the per-threshold points a curve needs."
-            />
           </section>
         </>
       )}

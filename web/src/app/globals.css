@@ -25,10 +25,12 @@
   --indigo: #6366F1;
   --card-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
   --sidebar-bg: #0D0F14;
-  --sidebar-text: #8B92A5;
+  --sidebar-text: #9CA3AF;
   --sidebar-muted: #4E5566;
-  --sidebar-active-bg: #1E1B4B;
-  --sidebar-active-text: #7C6EF5;
+  --sidebar-active-bg: #EEF2FF;
+  --sidebar-active-text: #4F46E5;
+  --sidebar-active-border: #4F46E5;
+  --toggle-track: #1E2130;
 }
 
 :root[data-theme="dark"] {
@@ -42,6 +44,10 @@
   --text-muted: #4E5566;
   --accent-light: rgb(124 110 245 / 0.14);
   --card-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  --sidebar-text: #6B7280;
+  --sidebar-active-bg: #1E1B4B;
+  --sidebar-active-text: #A78BFA;
+  --sidebar-active-border: #7C6EF5;
 }
 
 @theme inline {
@@ -70,6 +76,8 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active-bg: var(--sidebar-active-bg);
   --color-sidebar-active-text: var(--sidebar-active-text);
+  --color-sidebar-active-border: var(--sidebar-active-border);
+  --color-toggle-track: var(--toggle-track);
   --shadow-card: var(--card-shadow);
   --font-sans: var(--font-inter);
   --radius-card: 12px;
