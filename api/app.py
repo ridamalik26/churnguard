@@ -29,10 +29,12 @@ DEFAULT_PORT = 5053
 
 HIGH_RISK_THRESHOLD = 0.5
 MEDIUM_RISK_THRESHOLD = 0.3
+RISK_LEVELS = ("high", "medium", "low")
 PROBABILITY_DECIMALS = 4
 
 DEFAULT_AT_RISK_COUNT = 10
 MAX_AT_RISK_COUNT = 50
+PROBABILITY_BUCKET_COUNT = 10
 
 WHOLE_NUMBER_FIELDS = {"tenure", "SeniorCitizen"}
 BINARY_FIELDS = {"SeniorCitizen"}
@@ -205,6 +207,12 @@ def parse_at_risk_count(raw_value):
     return n
 
 
+def parse_risk_level(raw_value):
+    if raw_value not in RISK_LEVELS:
+        raise ApiError(f"level must be one of: {', '.join(RISK_LEVELS)}. Got {raw_value!r}")
+    return raw_value
+
+
 def build_groq_prompt(reasons, contract, monthly_charges):
     reason_lines = "\n".join(f"- {reason}" for reason in reasons)
     offer_lines = "\n".join(f"- {offer['title']}: {offer['description']}" for offer in OFFERS)
@@ -319,6 +327,80 @@ def customers_at_risk():
         }
         for position in top
     ])
+
+
+@app.get("/customers/by-risk")
+def customers_by_risk():
+    """The highest-probability active customers within a single risk level."""
+    level = parse_risk_level(request.args.get("level", ""))
+    n = parse_at_risk_count(request.args.get("n", str(DEFAULT_AT_RISK_COUNT)))
+    customers = load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
+    encoded = encode_customers(customers)
+    probabilities = PIPELINE.predict_proba(encoded)[:, 1]
+    levels = np.array([risk_level(probability) for probability in probabilities])
+    matching = np.where(levels == level)[0]
+    top = matching[np.argsort(-probabilities[matching], kind="stable")][:n]
+    return jsonify([
+        {
+            "customerID": customers["customerID"].iloc[position],
+            "monthly_charges": float(customers["MonthlyCharges"].iloc[position]),
+            **describe_customer(encoded.iloc[[position]], probabilities[position]),
+        }
+        for position in top
+    ])
+
+
+@app.get("/customers/summary")
+def customers_summary():
+    """Aggregate churn risk across every active, scorable customer (not just the at-risk sample)."""
+    customers = load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
+    encoded = encode_customers(customers)
+    probabilities = PIPELINE.predict_proba(encoded)[:, 1]
+    levels = np.array([risk_level(probability) for probability in probabilities])
+
+    bucket_edges = np.linspace(0, 1, PROBABILITY_BUCKET_COUNT + 1)
+    bucket_counts = np.histogram(probabilities, bins=bucket_edges)[0]
+    probability_distribution = [
+        {
+            "range": f"{round(bucket_edges[i] * 100)}-{round(bucket_edges[i + 1] * 100)}%",
+            "count": int(bucket_counts[i]),
+        }
+        for i in range(PROBABILITY_BUCKET_COUNT)
+    ]
+
+    return jsonify({
+        "total_customers": int(len(customers)),
+        "risk_counts": {level: int((levels == level).sum()) for level in ("high", "medium", "low")},
+        "avg_churn_probability": round(float(probabilities.mean()), PROBABILITY_DECIMALS),
+        "revenue_at_risk": round(float(customers["MonthlyCharges"].to_numpy()[levels == "high"].sum()), 2),
+        "probability_distribution": probability_distribution,
+    })
+
+
+@app.get("/customers/<customer_id>")
+def customer_detail(customer_id):
+    customer = find_customer(customer_id)
+    encoded = encode_customers(customer)
+    probability = PIPELINE.predict_proba(encoded)[0, 1]
+    row = customer.iloc[0]
+    return jsonify({
+        "customerID": row["customerID"],
+        "monthly_charges": float(row["MonthlyCharges"]),
+        "total_charges": float(row["TotalCharges"]),
+        "tenure": int(row["tenure"]),
+        "contract": row["Contract"],
+        "payment_method": row["PaymentMethod"],
+        "paperless_billing": row["PaperlessBilling"],
+        "internet_service": row["InternetService"],
+        "phone_service": row["PhoneService"],
+        "gender": row["gender"],
+        "senior_citizen": bool(row["SeniorCitizen"]),
+        "partner": row["Partner"],
+        "dependents": row["Dependents"],
+        **describe_customer(encoded, probability),
+    })
 
 
 @app.get("/metrics")

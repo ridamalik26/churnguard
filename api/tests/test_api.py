@@ -324,6 +324,81 @@ def test_unknown_route_returns_json_404(client):
     assert "error" in response.get_json()
 
 
+@pytest.mark.parametrize("level", ["high", "medium", "low"])
+def test_by_risk_returns_only_matching_level_sorted_desc(client, level):
+    response = client.get(f"/customers/by-risk?level={level}&n={api.MAX_AT_RISK_COUNT}")
+    assert response.status_code == 200
+    customers = response.get_json()
+    assert all(customer["risk_level"] == level for customer in customers)
+    probabilities = [customer["churn_probability"] for customer in customers]
+    assert probabilities == sorted(probabilities, reverse=True)
+
+
+def test_by_risk_respects_n(client):
+    assert len(client.get("/customers/by-risk?level=high&n=3").get_json()) == 3
+
+
+def test_by_risk_rejects_bad_level(client):
+    response = client.get("/customers/by-risk?level=critical&n=5")
+    assert response.status_code == 400
+    assert "level must be" in response.get_json()["error"]
+
+
+def test_by_risk_requires_level(client):
+    response = client.get("/customers/by-risk?n=5")
+    assert response.status_code == 400
+
+
+def test_summary_counts_match_full_active_population(client):
+    response = client.get("/customers/summary")
+    assert response.status_code == 200
+    data = response.get_json()
+
+    customers = api.load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
+    probabilities = api.PIPELINE.predict_proba(api.encode_customers(customers))[:, 1]
+    levels = [api.risk_level(p) for p in probabilities]
+
+    assert data["total_customers"] == len(customers)
+    assert data["risk_counts"] == {level: levels.count(level) for level in ("high", "medium", "low")}
+    assert data["avg_churn_probability"] == round(float(np.mean(probabilities)), api.PROBABILITY_DECIMALS)
+    assert sum(bucket["count"] for bucket in data["probability_distribution"]) == len(customers)
+    assert len(data["probability_distribution"]) == api.PROBABILITY_BUCKET_COUNT
+
+
+def test_summary_revenue_at_risk_is_sum_of_high_risk_monthly_charges(client):
+    data = client.get("/customers/summary").get_json()
+    customers = api.load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
+    probabilities = api.PIPELINE.predict_proba(api.encode_customers(customers))[:, 1]
+    expected = sum(
+        charge for charge, p in zip(customers["MonthlyCharges"], probabilities) if api.risk_level(p) == "high"
+    )
+    assert data["revenue_at_risk"] == round(expected, 2)
+
+
+def test_customer_detail_returns_profile_and_prediction(client):
+    customer_id = first_customer_id()
+    response = client.get(f"/customers/{customer_id}")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["customerID"] == customer_id
+    assert {"churn_probability", "risk_level", "top_reasons", "contract", "tenure", "monthly_charges"} <= set(data)
+    assert len(data["top_reasons"]) == 3
+
+
+def test_customer_detail_unknown_customer_returns_404(client):
+    response = client.get("/customers/0000-NOPE")
+    assert response.status_code == 404
+
+
+def test_customer_detail_without_total_charges_returns_422(client):
+    customers = api.load_customers()
+    customer_id = customers.loc[customers["TotalCharges"].isna(), "customerID"].iloc[0]
+    response = client.get(f"/customers/{customer_id}")
+    assert response.status_code == 422
+
+
 def test_top_at_risk_customer_matches_pipeline(client):
     top = client.get("/customers/at-risk?n=1").get_json()[0]
     customers = api.load_customers()
