@@ -23,11 +23,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full w-full overflow-x-hidden bg-bg">
-        <Sidebar />
-        <div className="min-h-screen ml-0 overflow-x-hidden md:ml-[240px]">
-          <TopNav />
-          <Topbar />
-          <main className="px-4 py-6 md:px-10 md:py-10">{children}</main>
+        <div className="flex min-h-screen w-full">
+          <Sidebar />
+          <div className="min-w-0 flex-1 overflow-x-hidden">
+            <TopNav />
+            <Topbar />
+            <main className="px-4 py-6 md:px-10 md:py-10">{children}</main>
+          </div>
         </div>
       </body>
     </html>
