@@ -1,6 +1,7 @@
 flask
 flask-cors
 groq
+pydantic
 joblib
 pandas
 numpy

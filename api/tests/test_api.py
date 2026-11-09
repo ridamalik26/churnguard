@@ -16,6 +16,7 @@ from groq import APITimeoutError
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import app as api
+import retention
 
 VALID_CUSTOMER = {
     "gender": "Female",
@@ -72,6 +73,23 @@ def groq():
     with patch("app.Groq") as mock_groq:
         mock_groq.return_value.chat.completions.create.return_value = groq_reply(GOOD_MESSAGE)
         yield mock_groq
+
+
+@pytest.fixture
+def retention_db(tmp_path, monkeypatch):
+    db_path = tmp_path / "retention_test.db"
+    monkeypatch.setattr(api, "RETENTION_DB_PATH", db_path)
+    return db_path
+
+
+@pytest.fixture
+def retention_groq():
+    with patch("retention.Groq") as mock_groq:
+        yield mock_groq
+
+
+def retention_groq_create(mock_groq):
+    return mock_groq.return_value.chat.completions.create
 
 
 def groq_create(mock_groq):
@@ -596,3 +614,167 @@ def test_simulate_does_not_mutate_cached_customer_data(client):
     client.post("/simulate", json={"customer_id": customer_id, "overrides": {"tenure": 1}})
     after = api.load_customers().set_index("customerID").loc[customer_id, "tenure"]
     assert before == after
+
+
+def test_apply_overrides_recomputes_total_charges_when_both_change():
+    customer = api.find_customer(month_to_month_customer_id())
+    simulated = api.apply_overrides(customer, {"tenure": 10, "MonthlyCharges": 50.0})
+    assert simulated["TotalCharges"].iloc[0] == pytest.approx(500.0)
+
+
+def test_apply_overrides_recomputes_total_charges_when_only_tenure_changes():
+    customer = api.find_customer(month_to_month_customer_id())
+    monthly_charges = customer["MonthlyCharges"].iloc[0]
+    simulated = api.apply_overrides(customer, {"tenure": 24})
+    assert simulated["TotalCharges"].iloc[0] == pytest.approx(24 * monthly_charges)
+
+
+def test_apply_overrides_recomputes_total_charges_when_only_charges_change():
+    customer = api.find_customer(month_to_month_customer_id())
+    tenure = customer["tenure"].iloc[0]
+    simulated = api.apply_overrides(customer, {"MonthlyCharges": 75.0})
+    assert simulated["TotalCharges"].iloc[0] == pytest.approx(tenure * 75.0)
+
+
+def test_apply_overrides_leaves_total_charges_when_neither_changes():
+    customer = api.find_customer(month_to_month_customer_id())
+    original_total_charges = customer["TotalCharges"].iloc[0]
+    simulated = api.apply_overrides(customer, {"Contract": "Two year"})
+    assert simulated["TotalCharges"].iloc[0] == original_total_charges
+
+
+GOOD_RETENTION_RESPONSE = {
+    "summary": "This customer is at high risk of leaving due to a short-term contract.",
+    "main_drivers": ["Month-to-month contract increases churn risk"],
+    "recommended_offer_id": "annual-contract-upgrade",
+    "strategy": "Offer a one year contract to lock in a lower churn risk.",
+    "communication_channel": "email",
+    "tone": "warm and professional",
+    "email_subject": "An offer just for you",
+    "email_body": "Hi there,\n\nWe would love to offer you our Annual Contract Upgrade.\n\nWarm regards,\nYour customer care team",
+}
+
+
+def test_retention_recommend_with_groq_success(client, retention_db, retention_groq):
+    retention_groq_create(retention_groq).return_value = groq_reply(GOOD_RETENTION_RESPONSE)
+    customer_id = month_to_month_customer_id()
+    response = client.post("/retention/recommend", json={"customer_id": customer_id})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert set(data) == {"customer_id", "churn_probability", "risk_level", "top_drivers", "eligible_offers", "recommendation", "source"}
+    assert data["customer_id"] == customer_id
+    assert data["source"] == "groq"
+    assert data["recommendation"]["recommended_offer_id"] == "annual-contract-upgrade"
+    assert any(offer["id"] == "annual-contract-upgrade" for offer in data["eligible_offers"])
+    for offer in data["eligible_offers"]:
+        assert {"id", "name", "description", "cost", "hypothetical_new_probability", "estimated_expected_value"} <= set(offer)
+
+
+def test_retention_recommend_offers_are_ranked_by_expected_value_desc(client, retention_db, retention_groq):
+    retention_groq_create(retention_groq).return_value = groq_reply(GOOD_RETENTION_RESPONSE)
+    customer_id = month_to_month_customer_id()
+    data = client.post("/retention/recommend", json={"customer_id": customer_id}).get_json()
+    values = [offer["estimated_expected_value"] for offer in data["eligible_offers"] if offer["estimated_expected_value"] is not None]
+    assert values == sorted(values, reverse=True)
+
+
+def test_retention_recommend_retries_once_on_invalid_json_then_succeeds(client, retention_db, retention_groq):
+    retention_groq_create(retention_groq).side_effect = [groq_reply("not json"), groq_reply(GOOD_RETENTION_RESPONSE)]
+    customer_id = month_to_month_customer_id()
+    response = client.post("/retention/recommend", json={"customer_id": customer_id})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["source"] == "groq"
+    assert retention_groq_create(retention_groq).call_count == 2
+
+
+def test_retention_recommend_falls_back_after_invalid_json_on_both_attempts(client, retention_db, retention_groq):
+    retention_groq_create(retention_groq).side_effect = [groq_reply("not json"), groq_reply("still not json")]
+    customer_id = month_to_month_customer_id()
+    response = client.post("/retention/recommend", json={"customer_id": customer_id})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["source"] == "fallback_template"
+    assert data["recommendation"]["recommended_offer_id"] in {offer["id"] for offer in data["eligible_offers"]}
+
+
+def test_retention_recommend_falls_back_on_invented_offer_id(client, retention_db, retention_groq):
+    invented = {**GOOD_RETENTION_RESPONSE, "recommended_offer_id": "totally-made-up-offer"}
+    retention_groq_create(retention_groq).return_value = groq_reply(invented)
+    customer_id = month_to_month_customer_id()
+    response = client.post("/retention/recommend", json={"customer_id": customer_id})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["source"] == "fallback_template"
+    assert data["recommendation"]["recommended_offer_id"] != "totally-made-up-offer"
+
+
+def test_retention_recommend_retries_and_recovers_from_invented_offer_id(client, retention_db, retention_groq):
+    invented = {**GOOD_RETENTION_RESPONSE, "recommended_offer_id": "totally-made-up-offer"}
+    retention_groq_create(retention_groq).side_effect = [groq_reply(invented), groq_reply(GOOD_RETENTION_RESPONSE)]
+    customer_id = month_to_month_customer_id()
+    response = client.post("/retention/recommend", json={"customer_id": customer_id})
+    data = response.get_json()
+    assert data["source"] == "groq"
+    assert data["recommendation"]["recommended_offer_id"] == "annual-contract-upgrade"
+
+
+def test_retention_recommend_falls_back_on_email_breaking_content_rules(client, retention_db, retention_groq):
+    bad = {**GOOD_RETENTION_RESPONSE, "email_body": "Your churn risk is extremely high, hurry!"}
+    retention_groq_create(retention_groq).return_value = groq_reply(bad)
+    customer_id = month_to_month_customer_id()
+    data = client.post("/retention/recommend", json={"customer_id": customer_id}).get_json()
+    assert data["source"] == "fallback_template"
+
+
+def test_retention_recommend_falls_back_without_api_key(client, retention_db):
+    without_key = {key: value for key, value in os.environ.items() if key != "GROQ_API_KEY"}
+    with patch.dict(os.environ, without_key, clear=True):
+        customer_id = month_to_month_customer_id()
+        response = client.post("/retention/recommend", json={"customer_id": customer_id})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["source"] == "fallback_template"
+
+
+def test_retention_recommend_unknown_customer_returns_404(client, retention_db):
+    response = client.post("/retention/recommend", json={"customer_id": "0000-NOPE"})
+    assert response.status_code == 404
+
+
+def test_retention_recommend_requires_customer_id(client, retention_db):
+    response = client.post("/retention/recommend", json={})
+    assert response.status_code == 400
+
+
+def test_retention_history_empty_when_no_recommendations(client, retention_db):
+    response = client.get("/retention/history")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data == {"total": 0, "recent": []}
+
+
+def test_retention_history_persists_and_lists_recommendations(client, retention_db, retention_groq):
+    retention_groq_create(retention_groq).return_value = groq_reply(GOOD_RETENTION_RESPONSE)
+    first_id = month_to_month_customer_id()
+    second_id = api.load_customers().dropna(subset=["TotalCharges"])["customerID"].iloc[1]
+
+    client.post("/retention/recommend", json={"customer_id": first_id})
+    client.post("/retention/recommend", json={"customer_id": second_id})
+
+    response = client.get("/retention/history")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["total"] == 2
+    assert len(data["recent"]) == 2
+    customer_ids = {entry["customer_id"] for entry in data["recent"]}
+    assert customer_ids == {first_id, second_id}
+    for entry in data["recent"]:
+        assert {"customer_id", "timestamp", "offer_id", "source", "payload"} <= set(entry)
+        assert entry["payload"]["recommendation"]["recommended_offer_id"] == entry["offer_id"]
+
+
+def test_retention_message_still_works_for_n8n(client, groq):
+    response = client.post("/retention-message", json={"customer_id": first_customer_id()})
+    assert response.status_code == 200
+    assert response.get_json() == GOOD_MESSAGE

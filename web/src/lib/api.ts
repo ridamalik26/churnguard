@@ -13,6 +13,51 @@ export type RetentionMessage = {
   body: string;
 };
 
+export type RetentionOffer = {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  hypothetical_new_probability: number | null;
+  estimated_expected_value: number | null;
+};
+
+export type RetentionSource = "groq" | "fallback_template";
+
+export type RetentionRecommendationContent = {
+  summary: string;
+  main_drivers: string[];
+  recommended_offer_id: string;
+  strategy: string;
+  communication_channel: string;
+  tone: string;
+  email_subject: string;
+  email_body: string;
+};
+
+export type RetentionRecommendationResult = {
+  customer_id: string;
+  churn_probability: number;
+  risk_level: RiskLevel;
+  top_drivers: string[];
+  eligible_offers: RetentionOffer[];
+  recommendation: RetentionRecommendationContent;
+  source: RetentionSource;
+};
+
+export type RetentionHistoryEntry = {
+  customer_id: string;
+  timestamp: string;
+  offer_id: string;
+  source: RetentionSource;
+  payload: RetentionRecommendationResult;
+};
+
+export type RetentionHistory = {
+  total: number;
+  recent: RetentionHistoryEntry[];
+};
+
 export type HealthStatus = {
   status: string;
   timestamp: string;

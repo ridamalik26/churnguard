@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { Mail, MailOpen, Search, TrendingUp, TriangleAlert, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ReasonsChart } from "@/components/reasons-chart";
-import { RetentionPanel } from "@/components/retention-panel";
+import { RetentionRecommendationPanel, SourceBadge } from "@/components/retention-recommendation-panel";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -13,7 +13,7 @@ import { RiskBadge } from "@/components/ui/RiskBadge";
 import { StatCard } from "@/components/ui/StatCard";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Reveal } from "@/components/ui/Reveal";
-import type { AtRiskCustomer, ModelMetrics } from "@/lib/api";
+import type { AtRiskCustomer, ModelMetrics, RetentionHistory } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 import { HIGH_RISK_DEFINITION, atRiskDefinition, isAtRisk, isHighRisk } from "@/lib/risk";
 
@@ -91,7 +91,7 @@ function CustomerDetail({ customer, onGenerated }: { customer: AtRiskCustomer | 
           icon={MailOpen}
           size="large"
           title="No customer selected"
-          description="Pick a customer from the list to see their churn drivers and generate a retention message."
+          description="Pick a customer from the list to see their churn drivers and generate a retention recommendation."
         />
       </div>
     );
@@ -109,8 +109,39 @@ function CustomerDetail({ customer, onGenerated }: { customer: AtRiskCustomer | 
         <ReasonsChart reasons={customer.top_reasons} />
       </section>
 
-      <RetentionPanel key={customer.customerID} customerId={customer.customerID} variant="callout" onGenerated={onGenerated} />
+      <RetentionRecommendationPanel key={customer.customerID} customerId={customer.customerID} onGenerated={onGenerated} />
     </div>
+  );
+}
+
+function RecentRecommendations({ history }: { history: RetentionHistory }) {
+  return (
+    <Reveal index={6}>
+      <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5 shadow-card">
+        <h2 className="font-semibold tracking-tight text-text-primary">Recent Recommendations</h2>
+        {history.recent.length === 0 ? (
+          <p className="text-text-secondary">No recommendations generated yet.</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border">
+            {history.recent.map((entry, index) => (
+              <li
+                key={`${entry.customer_id}-${entry.timestamp}-${index}`}
+                className="flex items-center justify-between gap-3 py-2.5 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-text-primary">{entry.customer_id}</p>
+                  <p className="text-xs text-text-secondary">{new Date(entry.timestamp).toLocaleString()}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-xs text-text-secondary">{entry.offer_id}</span>
+                  <SourceBadge source={entry.source} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </Reveal>
   );
 }
 
@@ -118,14 +149,17 @@ function RetentionIntelligence({
   customers,
   initialSelectedId,
   atRiskThreshold,
+  history,
+  onRecommendationGenerated,
 }: {
   customers: AtRiskCustomer[];
   initialSelectedId: string | null;
   atRiskThreshold: number;
+  history: RetentionHistory;
+  onRecommendationGenerated: () => void;
 }) {
   const preselected = initialSelectedId ? customers.find((c) => c.customerID === initialSelectedId) : undefined;
   const [selected, setSelected] = useState<AtRiskCustomer | null>(preselected ?? customers[0] ?? null);
-  const [messagesGenerated, setMessagesGenerated] = useState(0);
 
   const atRiskCount = customers.filter((c) => isAtRisk(c.churn_probability, atRiskThreshold)).length;
   const highRiskCount = customers.filter((c) => isHighRisk(c.risk_level)).length;
@@ -140,7 +174,7 @@ function RetentionIntelligence({
           <StatCard
             label="At-Risk Customers"
             value={<AnimatedNumber value={atRiskCount} />}
-            subtitle="Candidates for a retention message"
+            subtitle="Candidates for a retention recommendation"
             icon={TrendingUp}
             tone="accent"
             definition={atRiskDefinition(atRiskThreshold)}
@@ -168,8 +202,8 @@ function RetentionIntelligence({
         <Reveal index={3}>
           <StatCard
             label="Messages Generated"
-            value={<AnimatedNumber value={messagesGenerated} />}
-            subtitle="This session"
+            value={<AnimatedNumber value={history.total} />}
+            subtitle="All time, saved to the retention database"
             icon={Mail}
             tone="accent"
           />
@@ -181,9 +215,11 @@ function RetentionIntelligence({
           <CustomerPicker customers={customers} selected={selected} onSelect={setSelected} />
         </Reveal>
         <Reveal index={5} className="flex min-w-0 flex-1">
-          <CustomerDetail customer={selected} onGenerated={() => setMessagesGenerated((count) => count + 1)} />
+          <CustomerDetail customer={selected} onGenerated={onRecommendationGenerated} />
         </Reveal>
       </div>
+
+      <RecentRecommendations history={history} />
     </div>
   );
 }
@@ -191,29 +227,34 @@ function RetentionIntelligence({
 export function RetentionIntelligenceWorkspace({ initialSelectedId }: { initialSelectedId: string | null }) {
   const customersState = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
   const metricsState = useApiData<ModelMetrics>("/metrics");
+  const historyState = useApiData<RetentionHistory>("/retention/history");
 
-  const loading = customersState.state.status === "loading" || metricsState.state.status === "loading";
-  const errored = customersState.state.status === "error" ? customersState.state : metricsState.state.status === "error" ? metricsState.state : null;
+  const states = [customersState, metricsState, historyState];
+  const loading = states.some((s) => s.state.status === "loading");
+  const errored = states.find((s) => s.state.status === "error");
 
   function retryAll() {
     customersState.retry();
     metricsState.retry();
+    historyState.retry();
   }
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Retention Intelligence"
-        subtitle="Pick an at-risk customer to see their churn drivers and generate an AI retention message."
+        subtitle="Pick an at-risk customer to see their churn drivers and generate a grounded retention recommendation."
       />
 
       {loading && <LoadingSpinner label="Loading customers" />}
-      {errored && <ErrorState message={errored.message} onRetry={retryAll} />}
-      {customersState.state.status === "ready" && metricsState.state.status === "ready" && (
+      {errored && errored.state.status === "error" && <ErrorState message={errored.state.message} onRetry={retryAll} />}
+      {customersState.state.status === "ready" && metricsState.state.status === "ready" && historyState.state.status === "ready" && (
         <RetentionIntelligence
           customers={customersState.state.data}
           initialSelectedId={initialSelectedId}
           atRiskThreshold={metricsState.state.data.threshold}
+          history={historyState.state.data}
+          onRecommendationGenerated={historyState.retry}
         />
       )}
     </div>

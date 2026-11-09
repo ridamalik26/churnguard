@@ -3,6 +3,7 @@ import json
 import math
 import os
 import re
+import sqlite3
 import sys
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -20,6 +21,7 @@ from werkzeug.exceptions import HTTPException
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+import retention
 from explain import DEFAULT_DROPPED_LEVEL, DROPPED_LEVELS, _label, explain_customer, explain_customer_waterfall, get_shap_values
 
 load_dotenv(ROOT / ".env")
@@ -83,6 +85,10 @@ PIPELINE = joblib.load(ROOT / "models" / "pipeline.joblib")
 METRICS = json.loads((ROOT / "models" / "metrics.json").read_text(encoding="utf-8"))
 FEATURE_COLUMNS = METRICS["feature_columns"]
 OFFERS = json.loads((Path(__file__).resolve().parent / "offers.json").read_text(encoding="utf-8"))["offers"]
+RETENTION_OFFERS = json.loads((ROOT / "src" / "retention_offers.json").read_text(encoding="utf-8"))["offers"]
+BUSINESS_CONFIG = json.loads((ROOT / "src" / "business_config.json").read_text(encoding="utf-8"))
+RETENTION_DB_PATH = ROOT / "data" / "retention.db"
+RETENTION_HISTORY_LIMIT = 50
 
 CATEGORY_LEVELS = {}
 for _column in FEATURE_COLUMNS:
@@ -514,6 +520,99 @@ def shap_global():
     ])
 
 
+def get_retention_db():
+    RETENTION_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(RETENTION_DB_PATH)
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS recommendations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            offer_id TEXT NOT NULL,
+            source TEXT NOT NULL,
+            payload TEXT NOT NULL
+        )
+        """
+    )
+    return conn
+
+
+def save_retention_recommendation(result):
+    conn = get_retention_db()
+    try:
+        conn.execute(
+            "INSERT INTO recommendations (customer_id, timestamp, offer_id, source, payload) VALUES (?, ?, ?, ?, ?)",
+            (
+                result["customer_id"],
+                datetime.now(timezone.utc).isoformat(),
+                result["recommendation"]["recommended_offer_id"],
+                result["source"],
+                json.dumps(result),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def load_retention_history(limit=RETENTION_HISTORY_LIMIT):
+    conn = get_retention_db()
+    try:
+        total = conn.execute("SELECT COUNT(*) FROM recommendations").fetchone()[0]
+        rows = conn.execute(
+            "SELECT customer_id, timestamp, offer_id, source, payload FROM recommendations ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return {
+        "total": total,
+        "recent": [
+            {
+                "customer_id": row[0],
+                "timestamp": row[1],
+                "offer_id": row[2],
+                "source": row[3],
+                "payload": json.loads(row[4]),
+            }
+            for row in rows
+        ],
+    }
+
+
+@app.post("/retention/recommend")
+def retention_recommend():
+    body = json_body()
+    if "customer_id" not in body:
+        raise ApiError("Send a customer_id string")
+    customer = find_customer(body["customer_id"])
+    encoded = encode_customers(customer)
+    probability = float(PIPELINE.predict_proba(encoded)[0, 1])
+    level = risk_level(probability)
+    reasons = top_reasons(encoded)
+
+    result = retention.generate_recommendation(
+        customer_id=customer["customerID"].iloc[0],
+        customer_row_df=customer,
+        probability=probability,
+        risk_level=level,
+        top_driver_sentences=reasons,
+        pipeline=PIPELINE,
+        encode_fn=encode_customers,
+        apply_overrides_fn=apply_overrides,
+        offers_catalog=RETENTION_OFFERS,
+        business_config=BUSINESS_CONFIG,
+    )
+    save_retention_recommendation(result)
+    return jsonify(result)
+
+
+@app.get("/retention/history")
+def retention_history():
+    return jsonify(load_retention_history())
+
+
 @app.post("/retention-message")
 def retention_message():
     body = json_body()
@@ -529,6 +628,21 @@ def retention_message():
     return jsonify(write_retention_message(customer))
 
 
+def apply_overrides(customer, overrides):
+    """Apply validated what-if overrides to a copy of a customer row.
+
+    TotalCharges is not itself editable, but it is tenure * MonthlyCharges in the real data, so
+    changing either one without updating it would leave the simulated row internally
+    inconsistent (and feed the model a combination that cannot occur for a real customer).
+    """
+    simulated = customer.copy()
+    for field, value in overrides.items():
+        simulated[field] = value
+    if "tenure" in overrides or "MonthlyCharges" in overrides:
+        simulated["TotalCharges"] = simulated["tenure"] * simulated["MonthlyCharges"]
+    return simulated
+
+
 @app.post("/simulate")
 def simulate():
     body = json_body()
@@ -539,9 +653,7 @@ def simulate():
 
     original_probability = float(PIPELINE.predict_proba(encode_customers(customer))[0, 1])
 
-    simulated = customer.copy()
-    for field, value in overrides.items():
-        simulated[field] = value
+    simulated = apply_overrides(customer, overrides)
     simulated_encoded = encode_customers(simulated)
     new_probability = float(PIPELINE.predict_proba(simulated_encoded)[0, 1])
 

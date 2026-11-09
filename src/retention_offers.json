@@ -1,0 +1,76 @@
+{
+  "offers": [
+    {
+      "id": "general-checkin",
+      "name": "Customer Check-in Call",
+      "description": "A personal check-in call from our retention team to understand the customer's needs and offer tailored support.",
+      "cost": 0.0,
+      "eligibility": {},
+      "feature_override": null
+    },
+    {
+      "id": "annual-contract-upgrade",
+      "name": "Annual Contract Upgrade",
+      "description": "Move from a month-to-month plan to a one year contract with a signup credit.",
+      "cost": 20.0,
+      "eligibility": { "Contract": ["Month-to-month"] },
+      "feature_override": { "Contract": "One year" }
+    },
+    {
+      "id": "two-year-contract-upgrade",
+      "name": "Two Year Contract Upgrade",
+      "description": "Move to a two year contract with a larger signup credit and a locked-in rate.",
+      "cost": 35.0,
+      "eligibility": { "Contract": ["Month-to-month", "One year"] },
+      "feature_override": { "Contract": "Two year" }
+    },
+    {
+      "id": "autopay-switch",
+      "name": "Switch to Autopay",
+      "description": "Move billing to automatic credit card payment with a one-time statement credit.",
+      "cost": 10.0,
+      "eligibility": { "PaymentMethod": ["Electronic check", "Mailed check"] },
+      "feature_override": { "PaymentMethod": "Credit card (automatic)" }
+    },
+    {
+      "id": "tech-support-bundle",
+      "name": "Free Tech Support",
+      "description": "Add tech support to the account at no charge for the retention period.",
+      "cost": 15.0,
+      "eligibility": { "InternetService": ["DSL", "Fiber optic"], "TechSupport": ["No"] },
+      "feature_override": { "TechSupport": "Yes" }
+    },
+    {
+      "id": "online-security-bundle",
+      "name": "Free Online Security",
+      "description": "Add online security to the account at no charge for the retention period.",
+      "cost": 15.0,
+      "eligibility": { "InternetService": ["DSL", "Fiber optic"], "OnlineSecurity": ["No"] },
+      "feature_override": { "OnlineSecurity": "Yes" }
+    },
+    {
+      "id": "loyalty-discount",
+      "name": "Loyalty Discount",
+      "description": "15% off the monthly bill for the next 6 months as a thank you for staying.",
+      "cost": 50.0,
+      "eligibility": { "tenure_min": 12 },
+      "feature_override": null
+    },
+    {
+      "id": "free-plan-upgrade",
+      "name": "Free Plan Upgrade",
+      "description": "Move up to the next plan tier at no extra cost for 3 months.",
+      "cost": 30.0,
+      "eligibility": { "InternetService": ["Fiber optic"] },
+      "feature_override": null
+    },
+    {
+      "id": "referral-bonus",
+      "name": "Referral Bonus",
+      "description": "A $25 bill credit for each friend who signs up for service.",
+      "cost": 25.0,
+      "eligibility": { "tenure_min": 6 },
+      "feature_override": null
+    }
+  ]
+}
