@@ -99,8 +99,15 @@ def groq_create(mock_groq):
 def test_health_returns_status_and_timestamp(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.get_json()["status"] == "ok"
-    assert "timestamp" in response.get_json()
+    data = response.get_json()
+    assert data["status"] == "ok"
+    assert "timestamp" in data
+    assert data["model"] == api.METRICS["selected_model"]["name"]
+    assert data["threshold"] == api.METRICS["threshold"]
+
+
+def test_default_allowed_origins_includes_local_dashboard():
+    assert "http://localhost:5025" in api.ALLOWED_ORIGINS
 
 
 def test_predict_valid_customer(client):

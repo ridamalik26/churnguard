@@ -3,7 +3,6 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
@@ -129,7 +128,13 @@ def get_shap_values(pipeline, X_df):
 
 
 def global_feature_importance(pipeline, X_df, save_path):
-    """Plot mean absolute SHAP value per feature to save_path and return the sorted values."""
+    """Plot mean absolute SHAP value per feature to save_path and return the sorted values.
+
+    Only src/verify_explain.py calls this, so matplotlib (a training/dev-only dependency) is
+    imported here rather than at module level, keeping it out of the API's serving image.
+    """
+    import matplotlib.pyplot as plt
+
     _, shap_values = get_shap_values(pipeline, X_df)
     importance = pd.Series(np.abs(shap_values).mean(axis=0), index=X_df.columns).sort_values()
 

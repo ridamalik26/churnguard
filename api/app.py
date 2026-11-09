@@ -28,6 +28,7 @@ load_dotenv(ROOT / ".env")
 
 DATA_PATH = ROOT / "data" / "raw" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 DEFAULT_PORT = 5053
+DEFAULT_ALLOWED_ORIGIN = "http://localhost:5025"
 
 HIGH_RISK_THRESHOLD = 0.5
 MEDIUM_RISK_THRESHOLD = 0.3
@@ -87,7 +88,7 @@ FEATURE_COLUMNS = METRICS["feature_columns"]
 OFFERS = json.loads((Path(__file__).resolve().parent / "offers.json").read_text(encoding="utf-8"))["offers"]
 RETENTION_OFFERS = json.loads((ROOT / "src" / "retention_offers.json").read_text(encoding="utf-8"))["offers"]
 BUSINESS_CONFIG = json.loads((ROOT / "src" / "business_config.json").read_text(encoding="utf-8"))
-RETENTION_DB_PATH = ROOT / "data" / "retention.db"
+RETENTION_DB_PATH = Path(os.environ.get("RETENTION_DB_PATH", str(ROOT / "data" / "retention.db")))
 RETENTION_HISTORY_LIMIT = 50
 
 CATEGORY_LEVELS = {}
@@ -99,8 +100,14 @@ NUMERIC_FIELDS = [column for column in FEATURE_COLUMNS if "_" not in column]
 REQUIRED_FIELDS = NUMERIC_FIELDS + list(CATEGORY_LEVELS)
 EDITABLE_FEATURES = sorted(set(EDITABLE_CATEGORY_FEATURES) | set(EDITABLE_NUMERIC_BOUNDS))
 
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGIN).split(",")
+    if origin.strip()
+]
+
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=ALLOWED_ORIGINS)
 
 
 class ApiError(Exception):
@@ -357,7 +364,12 @@ def handle_server_error(error):
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok", timestamp=datetime.now(timezone.utc).isoformat())
+    return jsonify(
+        status="ok",
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        model=METRICS.get("selected_model", {}).get("name"),
+        threshold=METRICS.get("threshold"),
+    )
 
 
 @app.post("/predict")

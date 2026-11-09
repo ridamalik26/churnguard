@@ -1,10 +1,7 @@
 # Data
-data/raw/
+# data/raw/ is committed: the deployed API reads the Telco CSV from it at runtime.
 data/processed/
 data/retention.db
-
-# Models
-models/*.joblib
 
 # MLflow
 mlruns/

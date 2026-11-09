@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: churnguard-api
+    runtime: docker
+    repo: https://github.com/ridamalik26/churnguard.git
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5025
+      - key: RETENTION_DB_PATH
+        value: /app/data/retention.db

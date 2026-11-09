@@ -1,0 +1,6 @@
+# Training-only extras. Install with: pip install -r requirements.txt -r requirements-train.txt
+-r requirements.txt
+optuna
+mlflow
+matplotlib
+seaborn
