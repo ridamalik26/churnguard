@@ -8,6 +8,7 @@ import { setThemePreference, useThemePreference, type ThemePreference } from "@/
 import type { HealthStatus } from "@/lib/api";
 import { SAMPLE_SIZE_OPTIONS, useSampleSize } from "@/lib/preferences";
 import { useApiData } from "@/lib/use-api-data";
+import { Reveal } from "@/components/ui/Reveal";
 
 function SettingsSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
@@ -156,9 +157,15 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Settings" subtitle="Theme, data preferences, and API connectivity." />
-      <AppearanceSection />
-      <PreferencesSection />
-      <ApiStatusSection />
+      <Reveal index={0}>
+        <AppearanceSection />
+      </Reveal>
+      <Reveal index={1}>
+        <PreferencesSection />
+      </Reveal>
+      <Reveal index={2}>
+        <ApiStatusSection />
+      </Reveal>
     </div>
   );
 }

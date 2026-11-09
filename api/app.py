@@ -20,7 +20,7 @@ from werkzeug.exceptions import HTTPException
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from explain import DEFAULT_DROPPED_LEVEL, DROPPED_LEVELS, explain_customer
+from explain import DEFAULT_DROPPED_LEVEL, DROPPED_LEVELS, _label, explain_customer, get_shap_values
 
 load_dotenv(ROOT / ".env")
 
@@ -35,6 +35,10 @@ PROBABILITY_DECIMALS = 4
 DEFAULT_AT_RISK_COUNT = 10
 MAX_AT_RISK_COUNT = 50
 PROBABILITY_BUCKET_COUNT = 10
+
+GLOBAL_SHAP_SAMPLE_SIZE = 150
+GLOBAL_SHAP_RANDOM_STATE = 0
+TOP_GLOBAL_SHAP_FEATURES = 5
 
 WHOLE_NUMBER_FIELDS = {"tenure", "SeniorCitizen"}
 BINARY_FIELDS = {"SeniorCitizen"}
@@ -406,6 +410,38 @@ def customer_detail(customer_id):
 @app.get("/metrics")
 def metrics():
     return jsonify(METRICS)
+
+
+@lru_cache(maxsize=1)
+def global_shap_importance():
+    """Mean absolute SHAP impact per source feature, sampled from the active customer base."""
+    customers = load_customers()
+    customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
+    sample = customers.sample(n=min(GLOBAL_SHAP_SAMPLE_SIZE, len(customers)), random_state=GLOBAL_SHAP_RANDOM_STATE)
+    encoded = encode_customers(sample)
+    _, shap_values = get_shap_values(PIPELINE, encoded[FEATURE_COLUMNS])
+    shap_df = pd.DataFrame(shap_values, columns=FEATURE_COLUMNS)
+    source_feature = {column: column.partition("_")[0] for column in FEATURE_COLUMNS}
+    # One-hot sub-columns of the same feature are mutually exclusive per row, so summing their
+    # absolute SHAP values per row gives that feature's total contribution for that customer.
+    grouped = shap_df.abs().T.groupby(source_feature).sum().T
+    return grouped.mean(axis=0).sort_values(ascending=False)
+
+
+@app.get("/shap/global")
+def shap_global():
+    importance = global_shap_importance()
+    total = float(importance.sum())
+    top = importance.iloc[:TOP_GLOBAL_SHAP_FEATURES]
+    return jsonify([
+        {
+            "feature": feature,
+            "label": _label(feature),
+            "importance": round(float(value), 6),
+            "share": round(float(value) / total, 4) if total else 0.0,
+        }
+        for feature, value in top.items()
+    ])
 
 
 @app.post("/retention-message")

@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ProbabilityBucket } from "@/lib/api";
 
@@ -20,6 +21,7 @@ function BucketTooltip({ active, payload }: TooltipProps) {
 }
 
 export function ProbabilityDistributionChart({ buckets }: { buckets: ProbabilityBucket[] }) {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="h-[220px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -34,7 +36,7 @@ export function ProbabilityDistributionChart({ buckets }: { buckets: Probability
           />
           <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 11 }} width={36} />
           <Tooltip cursor={{ fill: "var(--accent-light)" }} content={<BucketTooltip />} />
-          <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} isAnimationActive={!reduceMotion} />
         </BarChart>
       </ResponsiveContainer>
     </div>

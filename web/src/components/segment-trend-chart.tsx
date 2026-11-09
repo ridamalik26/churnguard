@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
@@ -38,6 +39,7 @@ function TrendTooltip({ active, payload, label }: TooltipProps) {
 }
 
 export function SegmentTrendChart() {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="h-[240px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -47,9 +49,9 @@ export function SegmentTrendChart() {
           <YAxis tickLine={false} axisLine={false} tick={{ fill: "var(--text-secondary)", fontSize: 11 }} width={32} unit="%" />
           <Tooltip content={<TrendTooltip />} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Line type="monotone" dataKey="high" name="High Risk" stroke="#EF4444" strokeWidth={2} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="medium" name="Medium Risk" stroke="#F59E0B" strokeWidth={2} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="low" name="Low Risk" stroke="#22C55E" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="high" name="High Risk" stroke="#EF4444" strokeWidth={2} dot={false} isAnimationActive={!reduceMotion} />
+          <Line type="monotone" dataKey="medium" name="Medium Risk" stroke="#F59E0B" strokeWidth={2} dot={false} isAnimationActive={!reduceMotion} />
+          <Line type="monotone" dataKey="low" name="Low Risk" stroke="#22C55E" strokeWidth={2} dot={false} isAnimationActive={!reduceMotion} />
         </LineChart>
       </ResponsiveContainer>
     </div>

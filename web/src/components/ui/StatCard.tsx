@@ -1,17 +1,19 @@
 import clsx from "clsx";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 type Tone = "accent" | "high" | "medium" | "low";
 
 type StatCardProps = {
   label: string;
-  value: string;
+  value: ReactNode;
   subtitle: string;
   icon?: ComponentType<{ className?: string }>;
   tone?: Tone;
   leftBorderTone?: "high" | "medium" | "low";
   trend?: number;
+  definition?: string;
 };
 
 const TONE_STYLES: Record<Tone, string> = {
@@ -27,7 +29,7 @@ const LEFT_BORDER_STYLES: Record<"high" | "medium" | "low", string> = {
   low: "border-l-4 border-l-success",
 };
 
-export function StatCard({ label, value, subtitle, icon: Icon, tone = "accent", leftBorderTone, trend }: StatCardProps) {
+export function StatCard({ label, value, subtitle, icon: Icon, tone = "accent", leftBorderTone, trend, definition }: StatCardProps) {
   const trendUp = typeof trend === "number" && trend >= 0;
   return (
     <div
@@ -37,7 +39,10 @@ export function StatCard({ label, value, subtitle, icon: Icon, tone = "accent", 
       )}
     >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-text-secondary">{label}</p>
+        <span className="flex items-center gap-1.5">
+          <p className="text-xs font-medium text-text-secondary">{label}</p>
+          {definition && <InfoTooltip text={definition} />}
+        </span>
         {Icon && (
           <span className={clsx("flex size-8 shrink-0 items-center justify-center rounded-button", TONE_STYLES[tone])}>
             <Icon className="size-4" />

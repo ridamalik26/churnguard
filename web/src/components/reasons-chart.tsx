@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { Bar, BarChart, ResponsiveContainer, Text, Tooltip, XAxis, YAxis } from "recharts";
 
 const ROW_HEIGHT = 64;
@@ -55,6 +56,7 @@ function ReasonTooltip({ active, payload, total }: TooltipProps) {
 }
 
 export function ReasonsChart({ reasons }: { reasons: string[] }) {
+  const reduceMotion = useReducedMotion();
   const rows: ReasonRow[] = reasons.map((reason, index) => ({
     reason,
     rank: index + 1,
@@ -77,7 +79,7 @@ export function ReasonsChart({ reasons }: { reasons: string[] }) {
               tick={ReasonTick}
             />
             <Tooltip cursor={{ fill: "var(--accent-light)" }} content={<ReasonTooltip total={rows.length} />} />
-            <Bar dataKey="impact" fill="var(--accent)" barSize={BAR_THICKNESS} radius={[0, 4, 4, 0]} isAnimationActive={false} />
+            <Bar dataKey="impact" fill="var(--accent)" barSize={BAR_THICKNESS} radius={[0, 4, 4, 0]} isAnimationActive={!reduceMotion} />
           </BarChart>
         </ResponsiveContainer>
       </div>

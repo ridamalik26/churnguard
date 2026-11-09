@@ -3,9 +3,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HostLabel } from "@/components/ui/HostLabel";
 import { NAV_SECTIONS } from "@/components/ui/nav-items";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -18,7 +16,7 @@ export function Sidebar() {
       </div>
       <div className="mx-5 border-t border-white/10" />
 
-      <nav aria-label="Main" className="mt-4 flex flex-1 flex-col gap-5 px-3">
+      <nav aria-label="Main" className="mt-4 mb-4 flex flex-1 flex-col gap-5 px-3">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="flex flex-col gap-1">
             <p className="px-3 pb-1 text-[10px] font-medium tracking-widest text-sidebar-muted uppercase">{section.label}</p>
@@ -45,13 +43,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-
-      <div className="mt-auto flex flex-col items-center gap-3 px-3 py-4">
-        <ThemeToggle />
-        <p className="px-1 text-[11px] text-sidebar-muted">
-          <HostLabel />
-        </p>
-      </div>
     </aside>
   );
 }

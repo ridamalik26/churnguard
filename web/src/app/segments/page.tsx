@@ -10,6 +10,9 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { Reveal } from "@/components/ui/Reveal";
 import type { AtRiskCustomer, CustomerSummary, RiskLevel } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
@@ -82,30 +85,35 @@ function Segments({ summary, sampleSize }: { summary: CustomerSummary; sampleSiz
     <div className="flex flex-col gap-8">
       <PageHeader title="Customer Segments" subtitle={`${summary.total_customers} active customers grouped by churn risk.`} />
 
-      <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-        <div>
-          <h2 className="font-semibold tracking-tight text-text-primary">Monthly Churn Rate by Segment</h2>
-          <p className="mt-1 text-text-secondary">Illustrative simulated trend, 6 months, not a live time series.</p>
-        </div>
-        <SegmentTrendChart />
-      </section>
+      <Reveal index={0}>
+        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold tracking-tight text-text-primary">Monthly Churn Rate by Segment</h2>
+            <InfoTooltip text="Illustrative simulated trend, 6 months, not a live time series." />
+          </div>
+          <SegmentTrendChart />
+        </section>
+      </Reveal>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {SEGMENTS.map(({ level, label }) => (
-          <StatCard
-            key={level}
-            label={label}
-            value={summary.risk_counts[level].toLocaleString()}
-            subtitle={`${((summary.risk_counts[level] / summary.total_customers) * 100).toFixed(1)}% of customers`}
-            leftBorderTone={level}
-          />
+        {SEGMENTS.map(({ level, label }, index) => (
+          <Reveal key={level} index={index + 1}>
+            <StatCard
+              label={label}
+              value={<AnimatedNumber value={summary.risk_counts[level]} />}
+              subtitle={`${((summary.risk_counts[level] / summary.total_customers) * 100).toFixed(1)}% of customers`}
+              leftBorderTone={level}
+            />
+          </Reveal>
         ))}
       </section>
 
-      <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-        <SegmentTabs active={active} onChange={setActive} counts={summary.risk_counts} />
-        <SegmentCustomers key={active} level={active} sampleSize={sampleSize} />
-      </section>
+      <Reveal index={4}>
+        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+          <SegmentTabs active={active} onChange={setActive} counts={summary.risk_counts} />
+          <SegmentCustomers key={active} level={active} sampleSize={sampleSize} />
+        </section>
+      </Reveal>
     </div>
   );
 }

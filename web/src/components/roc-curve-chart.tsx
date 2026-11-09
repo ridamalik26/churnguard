@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const POINT_COUNT = 21;
@@ -38,6 +39,7 @@ function RocTooltip({ active, payload }: TooltipProps) {
 
 export function RocCurveChart({ rocAuc }: { rocAuc: number }) {
   const data = buildRocPoints(rocAuc);
+  const reduceMotion = useReducedMotion();
 
   return (
     <div className="h-[260px] w-full">
@@ -62,8 +64,8 @@ export function RocCurveChart({ rocAuc }: { rocAuc: number }) {
             label={{ value: "True Positive Rate", angle: -90, position: "insideLeft", fontSize: 11, fill: "var(--text-secondary)" }}
           />
           <Tooltip content={<RocTooltip />} />
-          <Line type="monotone" dataKey="reference" stroke="var(--text-muted)" strokeWidth={1.5} strokeDasharray="5 5" dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="tpr" name="ROC Curve" stroke="var(--teal)" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="reference" stroke="var(--text-muted)" strokeWidth={1.5} strokeDasharray="5 5" dot={false} isAnimationActive={!reduceMotion} />
+          <Line type="monotone" dataKey="tpr" name="ROC Curve" stroke="var(--teal)" strokeWidth={2} dot={false} isAnimationActive={!reduceMotion} />
         </LineChart>
       </ResponsiveContainer>
     </div>

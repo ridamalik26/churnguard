@@ -23,6 +23,13 @@ export type ProbabilityBucket = {
   count: number;
 };
 
+export type GlobalShapFeature = {
+  feature: string;
+  label: string;
+  importance: number;
+  share: number;
+};
+
 export type CustomerSummary = {
   total_customers: number;
   risk_counts: Record<RiskLevel, number>;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const POINT_COUNT = 51;
@@ -40,6 +41,7 @@ function DensityTooltip({ active, payload, label }: TooltipProps) {
 }
 
 export function PredictionDistributionChart() {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="h-[260px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -63,7 +65,7 @@ export function PredictionDistributionChart() {
             fill="#EF4444"
             fillOpacity={0.3}
             strokeWidth={2}
-            isAnimationActive={false}
+            isAnimationActive={!reduceMotion}
           />
           <Area
             type="monotone"
@@ -73,7 +75,7 @@ export function PredictionDistributionChart() {
             fill="#3B82F6"
             fillOpacity={0.3}
             strokeWidth={2}
-            isAnimationActive={false}
+            isAnimationActive={!reduceMotion}
           />
         </AreaChart>
       </ResponsiveContainer>

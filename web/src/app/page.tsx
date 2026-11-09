@@ -7,14 +7,18 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { RiskBadge } from "@/components/ui/RiskBadge";
 import { StatCard } from "@/components/ui/StatCard";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { Reveal } from "@/components/ui/Reveal";
 import { ChurnTrendChart } from "@/components/churn-trend-chart";
 import { ProbabilityDistributionChart } from "@/components/probability-distribution-chart";
-import type { AtRiskCustomer, CustomerSummary, ModelMetrics, ProbabilityBucket, RiskLevel } from "@/lib/api";
+import { TopChurnDriversChart } from "@/components/top-churn-drivers-chart";
+import type { AtRiskCustomer, CustomerSummary, GlobalShapFeature, RiskLevel } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
+import { AT_RISK_DEFINITION, HIGH_RISK_DEFINITION, isAtRisk } from "@/lib/risk";
 
 const SAMPLE_SIZE = 50;
 const TOP_CUSTOMER_COUNT = 5;
-const BUCKET_SIZE = 0.1;
 
 const PERCENT = new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -28,19 +32,6 @@ function countByRisk(customers: AtRiskCustomer[]): Record<RiskLevel, number> {
   return counts;
 }
 
-function probabilityBuckets(customers: AtRiskCustomer[]): ProbabilityBucket[] {
-  const bucketCount = Math.round(1 / BUCKET_SIZE);
-  const counts = new Array(bucketCount).fill(0);
-  for (const customer of customers) {
-    const index = Math.min(bucketCount - 1, Math.floor(customer.churn_probability / BUCKET_SIZE));
-    counts[index] += 1;
-  }
-  return counts.map((count, index) => ({
-    range: `${Math.round(index * BUCKET_SIZE * 100)}-${Math.round((index + 1) * BUCKET_SIZE * 100)}%`,
-    count,
-  }));
-}
-
 const TOP_CUSTOMER_COLUMNS: Column<AtRiskCustomer>[] = [
   { key: "customerID", header: "Customer ID", render: (c) => <span className="font-medium text-text-primary">{c.customerID}</span> },
   { key: "risk_level", header: "Risk Level", render: (c) => <RiskBadge level={c.risk_level} /> },
@@ -52,24 +43,11 @@ const TOP_CUSTOMER_COLUMNS: Column<AtRiskCustomer>[] = [
   },
 ];
 
-function ModelPerformanceSummary({ metrics }: { metrics: ModelMetrics }) {
-  const tuned = metrics.xgboost_test_tuned_threshold;
+function TopChurnDrivers({ features }: { features: GlobalShapFeature[] }) {
   return (
     <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-card">
-      <h2 className="font-semibold tracking-tight text-text-primary">Model Performance Summary</h2>
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {([
-          ["ROC-AUC", tuned.roc_auc],
-          ["Precision", tuned.precision],
-          ["Recall", tuned.recall],
-          ["F1", tuned.f1],
-        ] as const).map(([label, value]) => (
-          <div key={label}>
-            <dd className="text-[20px] font-bold tracking-tight text-accent">{value.toFixed(3)}</dd>
-            <dt className="mt-1 text-[11px] text-text-secondary">{label}</dt>
-          </div>
-        ))}
-      </dl>
+      <h2 className="font-semibold tracking-tight text-text-primary">Top Churn Drivers</h2>
+      <TopChurnDriversChart features={features} />
     </div>
   );
 }
@@ -77,81 +55,97 @@ function ModelPerformanceSummary({ metrics }: { metrics: ModelMetrics }) {
 function Dashboard({
   summary,
   customers,
-  metrics,
+  shapFeatures,
 }: {
   summary: CustomerSummary;
   customers: AtRiskCustomer[];
-  metrics: ModelMetrics;
+  shapFeatures: GlobalShapFeature[];
 }) {
   const riskCounts = countByRisk(customers);
-  const atRiskCount = riskCounts.high + riskCounts.medium;
+  const atRiskCount = customers.filter((c) => isAtRisk(c.churn_probability)).length;
   const avgProbability = customers.length
     ? customers.reduce((sum, c) => sum + c.churn_probability, 0) / customers.length
     : 0;
-  const buckets = probabilityBuckets(customers);
   const topCustomers = customers.slice(0, TOP_CUSTOMER_COUNT);
-  const sampleCaption = `Among the ${customers.length} highest-risk customers`;
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title="Dashboard" subtitle="A live view of churn risk across the active customer base." />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          label="Total Active Customers"
-          value={summary.total_customers.toLocaleString()}
-          subtitle="Across the full active customer base"
-          icon={Users}
-          tone="accent"
-        />
-        <StatCard
-          label="At-Risk Customers"
-          value={atRiskCount.toLocaleString()}
-          subtitle={sampleCaption}
-          icon={TrendingUp}
-          tone="medium"
-        />
-        <StatCard
-          label="High-Risk Customers"
-          value={riskCounts.high.toLocaleString()}
-          subtitle={sampleCaption}
-          icon={AlertTriangle}
-          tone="high"
-        />
-        <StatCard
-          label="Avg. Churn Probability"
-          value={PERCENT.format(avgProbability)}
-          subtitle={sampleCaption}
-          icon={Activity}
-          tone="accent"
-        />
+        <Reveal index={0}>
+          <StatCard
+            label="Total Active Customers"
+            value={<AnimatedNumber value={summary.total_customers} />}
+            subtitle="All customers in the active dataset"
+            icon={Users}
+            tone="accent"
+          />
+        </Reveal>
+        <Reveal index={1}>
+          <StatCard
+            label="At-Risk Customers"
+            value={<AnimatedNumber value={atRiskCount} />}
+            subtitle={`Above the ${(0.4672 * 100).toFixed(2)}% churn threshold`}
+            icon={TrendingUp}
+            tone="medium"
+            definition={AT_RISK_DEFINITION}
+          />
+        </Reveal>
+        <Reveal index={2}>
+          <StatCard
+            label="High-Risk Customers"
+            value={<AnimatedNumber value={riskCounts.high} />}
+            subtitle="Highest-urgency churn predictions"
+            icon={AlertTriangle}
+            tone="high"
+            definition={HIGH_RISK_DEFINITION}
+          />
+        </Reveal>
+        <Reveal index={3}>
+          <StatCard
+            label="Avg. Churn Probability"
+            value={<AnimatedNumber value={avgProbability * 100} format={(n) => PERCENT.format(n / 100)} />}
+            subtitle="Mean across the customers loaded here"
+            icon={Activity}
+            tone="accent"
+          />
+        </Reveal>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-          <div>
-            <h2 className="font-semibold tracking-tight text-text-primary">Churn Risk Trend</h2>
-            <p className="mt-1 text-text-secondary">Illustrative trend based on model predictions. Simulated monthly data, not a live time series.</p>
-          </div>
-          <ChurnTrendChart />
-        </section>
+        <Reveal index={4}>
+          <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold tracking-tight text-text-primary">Churn Risk Trend</h2>
+              <InfoTooltip text="Illustrative trend based on model predictions. Simulated monthly data, not a live time series." />
+            </div>
+            <ChurnTrendChart />
+          </section>
+        </Reveal>
 
-        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-          <div>
-            <h2 className="font-semibold tracking-tight text-text-primary">Churn Probability Distribution</h2>
-            <p className="mt-1 text-text-secondary">{sampleCaption}, grouped in 10 percent bands.</p>
-          </div>
-          <ProbabilityDistributionChart buckets={buckets} />
-        </section>
+        <Reveal index={5}>
+          <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+            <div>
+              <h2 className="font-semibold tracking-tight text-text-primary">Churn Probability Distribution</h2>
+              <p className="mt-1 text-text-secondary">Across all active customers, grouped in 10 percent bands.</p>
+            </div>
+            <ProbabilityDistributionChart buckets={summary.probability_distribution} />
+          </section>
+        </Reveal>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-          <h2 className="font-semibold tracking-tight text-text-primary">Top 5 Highest Risk Customers</h2>
-          <DataTable columns={TOP_CUSTOMER_COLUMNS} rows={topCustomers} rowKey={(c) => c.customerID} />
-        </section>
+        <Reveal index={6}>
+          <section className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+            <h2 className="font-semibold tracking-tight text-text-primary">Top 5 Highest Risk Customers</h2>
+            <DataTable columns={TOP_CUSTOMER_COLUMNS} rows={topCustomers} rowKey={(c) => c.customerID} />
+          </section>
+        </Reveal>
 
-        <ModelPerformanceSummary metrics={metrics} />
+        <Reveal index={7}>
+          <TopChurnDrivers features={shapFeatures} />
+        </Reveal>
       </div>
     </div>
   );
@@ -160,22 +154,22 @@ function Dashboard({
 export default function DashboardPage() {
   const summaryState = useApiData<CustomerSummary>("/customers/summary");
   const customersState = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
-  const metricsState = useApiData<ModelMetrics>("/metrics");
+  const shapState = useApiData<GlobalShapFeature[]>("/shap/global");
 
-  const loading = [summaryState, customersState, metricsState].some((s) => s.state.status === "loading");
-  const errored = [summaryState, customersState, metricsState].find((s) => s.state.status === "error");
+  const loading = [summaryState, customersState, shapState].some((s) => s.state.status === "loading");
+  const errored = [summaryState, customersState, shapState].find((s) => s.state.status === "error");
 
   function retryAll() {
     summaryState.retry();
     customersState.retry();
-    metricsState.retry();
+    shapState.retry();
   }
 
   if (loading) return <LoadingSpinner label="Loading dashboard" />;
   if (errored && errored.state.status === "error") return <ErrorState message={errored.state.message} onRetry={retryAll} />;
-  if (summaryState.state.status !== "ready" || customersState.state.status !== "ready" || metricsState.state.status !== "ready") {
+  if (summaryState.state.status !== "ready" || customersState.state.status !== "ready" || shapState.state.status !== "ready") {
     return null;
   }
 
-  return <Dashboard summary={summaryState.state.data} customers={customersState.state.data} metrics={metricsState.state.data} />;
+  return <Dashboard summary={summaryState.state.data} customers={customersState.state.data} shapFeatures={shapState.state.data} />;
 }

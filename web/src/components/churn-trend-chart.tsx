@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -37,6 +38,7 @@ function TrendTooltip({ active, payload, label }: TooltipProps) {
 }
 
 export function ChurnTrendChart() {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="h-[260px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -53,7 +55,7 @@ export function ChurnTrendChart() {
           />
           <Tooltip content={<TrendTooltip />} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Line type="monotone" dataKey="highRiskRate" name="High Risk Rate" stroke="#EF4444" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="highRiskRate" name="High Risk Rate" stroke="#EF4444" strokeWidth={2} dot={false} isAnimationActive={!reduceMotion} />
           <Line
             type="monotone"
             dataKey="overallProbability"
@@ -61,7 +63,7 @@ export function ChurnTrendChart() {
             stroke="#7C6EF5"
             strokeWidth={2}
             dot={false}
-            isAnimationActive={false}
+            isAnimationActive={!reduceMotion}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -1,16 +1,19 @@
 "use client";
 
 import clsx from "clsx";
+import Link from "next/link";
 import { Clock, DollarSign, FileText, Search, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { ReasonsChart } from "@/components/reasons-chart";
 import { ProbabilityGauge } from "@/components/probability-gauge";
-import { RetentionPanel } from "@/components/retention-panel";
+import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { RiskBadge } from "@/components/ui/RiskBadge";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
+import { Reveal } from "@/components/ui/Reveal";
 import type { AtRiskCustomer, CustomerDetail, RiskLevel } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
@@ -33,7 +36,7 @@ function formatProbability(probability: number) {
   return `${(probability * 100).toFixed(2)}%`;
 }
 
-function StatChip({ label, value }: { label: string; value: string }) {
+function StatChip({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2">
       <span className="font-bold text-text-primary">{value}</span>
@@ -111,7 +114,7 @@ function CustomerList({
   }, [customers, search, tab]);
 
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-card lg:w-[280px]">
+    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-card lg:w-[340px]">
       <div className="flex gap-1 overflow-x-auto">
         {TABS.map((option) => (
           <button
@@ -156,11 +159,11 @@ function CustomerList({
                 )}
               >
                 <span className={clsx("size-2 shrink-0 rounded-full", RISK_DOT[customer.risk_level])} aria-hidden />
-                <span className={clsx("min-w-0 flex-1 truncate", selected ? "font-medium text-accent" : "text-text-primary")}>
+                <span className={clsx("min-w-0 flex-1 whitespace-nowrap", selected ? "font-medium text-accent" : "text-text-primary")}>
                   {customer.customerID}
                 </span>
                 <RiskBadge level={customer.risk_level} />
-                <span className="w-14 shrink-0 text-right tabular-nums text-text-secondary">
+                <span className="w-16 shrink-0 text-right tabular-nums text-text-secondary">
                   {formatProbability(customer.churn_probability)}
                 </span>
               </button>
@@ -211,7 +214,7 @@ function CustomerWorkspace({ id }: { id: string }) {
   const charges = chargesLevel(customer.monthly_charges);
 
   return (
-    <>
+    <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -258,10 +261,11 @@ function CustomerWorkspace({ id }: { id: string }) {
           <ReasonsChart reasons={customer.top_reasons} />
         </section>
 
-        <section className="rounded-card border border-border bg-surface p-5 shadow-card">
-          <h2 className="mb-4 font-semibold tracking-tight text-text-primary">Retention Message</h2>
-          <RetentionPanel customerId={customer.customerID} />
-        </section>
+        <Link href={`/retention?customer=${encodeURIComponent(customer.customerID)}`} className="w-full">
+          <Button variant="solid" className="w-full">
+            Generate Retention Message
+          </Button>
+        </Link>
       </div>
 
       <div className="flex w-full flex-col gap-3 lg:w-[220px]">
@@ -270,7 +274,7 @@ function CustomerWorkspace({ id }: { id: string }) {
         <SignalCard icon={Clock} label="Tenure Risk" value={tenure.label} tone={tenure.tone} />
         <SignalCard icon={DollarSign} label="Charges Level" value={charges.label} tone={charges.tone} />
       </div>
-    </>
+    </div>
   );
 }
 
@@ -281,7 +285,7 @@ function CustomersWorkspacePage({
   customers: AtRiskCustomer[];
   initialSelectedId: string | null;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? customers[0]?.customerID ?? null);
   const highRiskCount = customers.filter((c) => c.risk_level === "high").length;
   const avgProbability = customers.length
     ? customers.reduce((sum, c) => sum + c.churn_probability, 0) / customers.length
@@ -289,27 +293,36 @@ function CustomersWorkspacePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-3">
-        <StatChip label="total shown" value={customers.length.toLocaleString()} />
-        <StatChip label="high risk" value={highRiskCount.toLocaleString()} />
-        <StatChip label="avg probability" value={`${(avgProbability * 100).toFixed(1)}%`} />
-      </div>
+      <Reveal index={0}>
+        <div className="flex flex-wrap gap-3">
+          <StatChip label="total shown" value={<AnimatedNumber value={customers.length} />} />
+          <StatChip label="high risk" value={<AnimatedNumber value={highRiskCount} />} />
+          <StatChip
+            label="avg probability"
+            value={<AnimatedNumber value={avgProbability * 100} format={(n) => `${n.toFixed(1)}%`} />}
+          />
+        </div>
+      </Reveal>
 
       <div className="flex flex-col gap-4 lg:flex-row">
-        <CustomerList customers={customers} selectedId={selectedId} onSelect={setSelectedId} />
+        <Reveal index={1}>
+          <CustomerList customers={customers} selectedId={selectedId} onSelect={setSelectedId} />
+        </Reveal>
 
-        {selectedId ? (
-          <CustomerWorkspace key={selectedId} id={selectedId} />
-        ) : (
-          <div className="flex min-h-[300px] flex-1 items-center justify-center rounded-card border border-border bg-surface p-5 shadow-card">
-            <EmptyState
-              icon={UserRound}
-              size="large"
-              title="No customer selected"
-              description="Pick a customer from the list to see their full profile, churn drivers, and retention tools."
-            />
-          </div>
-        )}
+        <Reveal index={2} className="flex min-w-0 flex-1">
+          {selectedId ? (
+            <CustomerWorkspace key={selectedId} id={selectedId} />
+          ) : (
+            <div className="flex min-h-[300px] flex-1 items-center justify-center rounded-card border border-border bg-surface p-5 shadow-card">
+              <EmptyState
+                icon={UserRound}
+                size="large"
+                title="No customer selected"
+                description="Pick a customer from the list to see their full profile, churn drivers, and retention tools."
+              />
+            </div>
+          )}
+        </Reveal>
       </div>
     </div>
   );

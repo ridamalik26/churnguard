@@ -10,7 +10,7 @@ export default async function AtRiskCustomersPage(props: PageProps<"/customers">
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="At-Risk Customers" subtitle="Browse at-risk customers, review their churn drivers, and send a retention message." />
+      <PageHeader title="At-Risk Customers" subtitle="Browse at-risk customers, review their churn drivers, and start a retention message." />
       <CustomersWorkspace initialCustomerId={initialCustomerId} />
     </div>
   );

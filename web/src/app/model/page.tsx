@@ -6,6 +6,8 @@ import { RocCurveChart } from "@/components/roc-curve-chart";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { Reveal } from "@/components/ui/Reveal";
 import type { ConfusionMatrix, MetricKey, ModelMetrics } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
@@ -27,11 +29,14 @@ function formatMetric(value: number) {
   return value.toFixed(METRIC_DECIMALS);
 }
 
-function SectionHeading({ title, description }: { title: string; description: string }) {
+function SectionHeading({ title, description, note }: { title: string; description?: string; note?: string }) {
   return (
     <div>
-      <h2 className="text-base font-semibold tracking-tight text-text-primary">{title}</h2>
-      <p className="mt-1 text-text-secondary">{description}</p>
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-semibold tracking-tight text-text-primary">{title}</h2>
+        {note && <InfoTooltip text={note} />}
+      </div>
+      {description && <p className="mt-1 text-text-secondary">{description}</p>}
     </div>
   );
 }
@@ -133,40 +138,51 @@ export default function ModelPerformancePage() {
       {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
       {state.status === "ready" && (
         <>
-          <section className="flex flex-col gap-4">
-            <SectionHeading
-              title="XGBoost at Tuned Classification Threshold"
-              description={`A prediction counts as churn when its probability exceeds ${formatMetric(state.data.threshold)}, a threshold chosen to maximize F1 on the validation set.`}
-            />
-            <SummaryCards metrics={state.data} />
-          </section>
+          <Reveal index={0}>
+            <section className="flex flex-col gap-4">
+              <SectionHeading
+                title="XGBoost at Tuned Classification Threshold"
+                description={`A prediction counts as churn when its probability exceeds ${formatMetric(state.data.threshold)}, a threshold chosen to maximize F1 on the validation set.`}
+              />
+              <SummaryCards metrics={state.data} />
+            </section>
+          </Reveal>
 
           <section className="grid gap-4 lg:grid-cols-2">
-            <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-              <SectionHeading
-                title="Prediction Distribution"
-                description="Illustrative bell-curve densities, not the model's actual per-customer predictions."
-              />
-              <PredictionDistributionChart />
-            </div>
-            <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
-              <SectionHeading
-                title="ROC Curve"
-                description={`Illustrative curve shaped to match the model's real ROC-AUC of ${formatMetric(state.data.xgboost_test_tuned_threshold.roc_auc)}. Per-threshold points are not saved by training.`}
-              />
-              <RocCurveChart rocAuc={state.data.xgboost_test_tuned_threshold.roc_auc} />
-            </div>
+            <Reveal index={1}>
+              <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+                <SectionHeading
+                  title="Prediction Distribution"
+                  note="Illustrative bell-curve densities, not the model's actual per-customer predictions."
+                />
+                <PredictionDistributionChart />
+              </div>
+            </Reveal>
+            <Reveal index={2}>
+              <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+                <SectionHeading
+                  title="ROC Curve"
+                  description={`Shaped to match the model's real ROC-AUC of ${formatMetric(state.data.xgboost_test_tuned_threshold.roc_auc)}.`}
+                  note="Illustrative curve. Per-threshold points are not saved by training, so the curve itself is simulated."
+                />
+                <RocCurveChart rocAuc={state.data.xgboost_test_tuned_threshold.roc_auc} />
+              </div>
+            </Reveal>
           </section>
 
-          <section className="flex flex-col gap-4">
-            <SectionHeading title="Confusion Matrix" description="XGBoost test set predictions at the tuned threshold." />
-            <ConfusionMatrixGrid matrix={state.data.xgboost_test_tuned_confusion_matrix} />
-          </section>
+          <Reveal index={3}>
+            <section className="flex flex-col gap-4">
+              <SectionHeading title="Confusion Matrix" description="XGBoost test set predictions at the tuned threshold." />
+              <ConfusionMatrixGrid matrix={state.data.xgboost_test_tuned_confusion_matrix} />
+            </section>
+          </Reveal>
 
-          <section className="flex flex-col gap-4">
-            <SectionHeading title="Logistic Regression vs XGBoost" description="All saved metrics side by side." />
-            <ComparisonTable metrics={state.data} />
-          </section>
+          <Reveal index={4}>
+            <section className="flex flex-col gap-4">
+              <SectionHeading title="Logistic Regression vs XGBoost" description="All saved metrics side by side." />
+              <ComparisonTable metrics={state.data} />
+            </section>
+          </Reveal>
         </>
       )}
     </div>

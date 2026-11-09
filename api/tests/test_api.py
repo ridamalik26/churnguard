@@ -399,6 +399,26 @@ def test_customer_detail_without_total_charges_returns_422(client):
     assert response.status_code == 422
 
 
+def test_shap_global_returns_top_features_sorted_desc(client):
+    response = client.get("/shap/global")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data) == api.TOP_GLOBAL_SHAP_FEATURES
+    for item in data:
+        assert {"feature", "label", "importance", "share"} <= set(item)
+        assert item["importance"] >= 0
+        assert 0 <= item["share"] <= 1
+        assert item["label"]
+    importances = [item["importance"] for item in data]
+    assert importances == sorted(importances, reverse=True)
+
+
+def test_shap_global_is_cached_across_requests(client):
+    first = client.get("/shap/global").get_json()
+    second = client.get("/shap/global").get_json()
+    assert first == second
+
+
 def test_top_at_risk_customer_matches_pipeline(client):
     top = client.get("/customers/at-risk?n=1").get_json()[0]
     customers = api.load_customers()

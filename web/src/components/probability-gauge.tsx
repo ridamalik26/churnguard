@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { RadialBar, RadialBarChart } from "recharts";
 import type { RiskLevel } from "@/lib/api";
 
@@ -10,6 +11,7 @@ const TONE_COLOR: Record<RiskLevel, string> = {
 };
 
 export function ProbabilityGauge({ probability, riskLevel }: { probability: number; riskLevel: RiskLevel }) {
+  const reduceMotion = useReducedMotion();
   const percent = Math.round(probability * 100);
   const data = [{ value: percent, fill: TONE_COLOR[riskLevel] }];
 
@@ -27,7 +29,7 @@ export function ProbabilityGauge({ probability, riskLevel }: { probability: numb
         startAngle={90}
         endAngle={-270}
       >
-        <RadialBar dataKey="value" cornerRadius={6} background={{ fill: "var(--border)" }} isAnimationActive={false} />
+        <RadialBar dataKey="value" cornerRadius={6} background={{ fill: "var(--border)" }} isAnimationActive={!reduceMotion} />
       </RadialBarChart>
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-xl font-bold text-text-primary">{percent}%</span>
