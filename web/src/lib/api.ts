@@ -46,10 +46,47 @@ export type CustomerDetail = AtRiskCustomer & {
   paperless_billing: string;
   internet_service: string;
   phone_service: string;
+  tech_support: string;
+  online_security: string;
   gender: string;
   senior_citizen: boolean;
   partner: string;
   dependents: string;
+};
+
+export type ShapFeatureContribution = {
+  feature: string;
+  label: string;
+  value: string | number | boolean | null;
+  contribution: number;
+};
+
+export type ShapWaterfall = {
+  base_value: number;
+  features: ShapFeatureContribution[];
+  final_model_output: number;
+  final_probability: number;
+};
+
+export type SimulationOverrides = {
+  Contract?: string;
+  tenure?: number;
+  MonthlyCharges?: number;
+  InternetService?: string;
+  PaymentMethod?: string;
+  PaperlessBilling?: string;
+  TechSupport?: string;
+  OnlineSecurity?: string;
+};
+
+export type SimulationResult = {
+  customer_id: string;
+  overrides_applied: SimulationOverrides;
+  original_probability: number;
+  new_probability: number;
+  probability_change: number;
+  new_risk_level: RiskLevel;
+  new_top_reasons: string[];
 };
 
 export type MetricKey = "roc_auc" | "pr_auc" | "precision" | "recall" | "f1";

@@ -9,6 +9,7 @@ import pandas as pd
 import shap
 
 TOP_REASONS = 3
+WATERFALL_TOP_FEATURES = 10
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "raw" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
@@ -189,3 +190,69 @@ def explain_customer_text(pipeline, customer_row_df, feature_names):
     """Return the top 3 reasons for one customer as a single paragraph."""
     reasons = explain_customer(pipeline, customer_row_df, feature_names)
     return ". ".join(item["reason"] for item in reasons) + "."
+
+
+def _feature_display_value(feature, row_df):
+    """The customer's actual value for a feature, grouping one-hot levels back to their category."""
+    if feature in row_df.columns:
+        value = row_df[feature].iloc[0].item()
+        if feature == "SeniorCitizen":
+            return "Yes" if value == 1 else "No"
+        return value
+    return _customer_level(feature, row_df)
+
+
+def _scalar_expected_value(expected_value):
+    """shap's expected_value is sometimes one float per class; take the positive class's."""
+    if isinstance(expected_value, (list, tuple, np.ndarray)):
+        values = list(np.ravel(expected_value))
+        return float(values[1] if len(values) > 1 else values[0])
+    return float(expected_value)
+
+
+def explain_customer_waterfall(pipeline, customer_row_df, feature_names, top_n=WATERFALL_TOP_FEATURES):
+    """Return a full SHAP breakdown for one customer, ready to draw as a waterfall chart.
+
+    Every original feature (one-hot columns summed back into their source feature) gets a
+    signed contribution, its display name, and the customer's actual value. Features are
+    ranked by the size of their contribution; anything past the top `top_n` is folded into a
+    single "Other features" bucket so the chart stays readable. base_value plus every
+    contribution (including the folded bucket) equals final_model_output.
+    """
+    if len(customer_row_df) != 1:
+        raise ValueError(f"Expected exactly 1 customer row, got {len(customer_row_df)}")
+    row_df = customer_row_df[list(feature_names)]
+    explainer, shap_values = get_shap_values(pipeline, row_df)
+
+    base_value = _scalar_expected_value(explainer.expected_value)
+    by_feature = pd.Series(shap_values[0], index=row_df.columns).groupby(_source_feature, sort=False).sum()
+
+    features = [
+        {
+            "feature": feature,
+            "label": _label(feature),
+            "value": _feature_display_value(feature, row_df),
+            "contribution": float(contribution),
+        }
+        for feature, contribution in by_feature.items()
+    ]
+    features.sort(key=lambda item: abs(item["contribution"]), reverse=True)
+
+    top_features, remainder = features[:top_n], features[top_n:]
+    if remainder:
+        top_features.append({
+            "feature": "other_features",
+            "label": f"Other features ({len(remainder)})",
+            "value": None,
+            "contribution": float(sum(item["contribution"] for item in remainder)),
+        })
+
+    final_model_output = base_value + float(sum(item["contribution"] for item in top_features))
+    final_probability = float(pipeline.predict_proba(row_df)[0, 1])
+
+    return {
+        "base_value": base_value,
+        "features": top_features,
+        "final_model_output": final_model_output,
+        "final_probability": final_probability,
+    }

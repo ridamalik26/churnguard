@@ -13,9 +13,9 @@ import { RiskBadge } from "@/components/ui/RiskBadge";
 import { StatCard } from "@/components/ui/StatCard";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Reveal } from "@/components/ui/Reveal";
-import type { AtRiskCustomer } from "@/lib/api";
+import type { AtRiskCustomer, ModelMetrics } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
-import { AT_RISK_DEFINITION, HIGH_RISK_DEFINITION, isAtRisk, isHighRisk } from "@/lib/risk";
+import { HIGH_RISK_DEFINITION, atRiskDefinition, isAtRisk, isHighRisk } from "@/lib/risk";
 
 const SAMPLE_SIZE = 20;
 const PERCENT = new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -114,12 +114,20 @@ function CustomerDetail({ customer, onGenerated }: { customer: AtRiskCustomer | 
   );
 }
 
-function RetentionIntelligence({ customers, initialSelectedId }: { customers: AtRiskCustomer[]; initialSelectedId: string | null }) {
+function RetentionIntelligence({
+  customers,
+  initialSelectedId,
+  atRiskThreshold,
+}: {
+  customers: AtRiskCustomer[];
+  initialSelectedId: string | null;
+  atRiskThreshold: number;
+}) {
   const preselected = initialSelectedId ? customers.find((c) => c.customerID === initialSelectedId) : undefined;
   const [selected, setSelected] = useState<AtRiskCustomer | null>(preselected ?? customers[0] ?? null);
   const [messagesGenerated, setMessagesGenerated] = useState(0);
 
-  const atRiskCount = customers.filter((c) => isAtRisk(c.churn_probability)).length;
+  const atRiskCount = customers.filter((c) => isAtRisk(c.churn_probability, atRiskThreshold)).length;
   const highRiskCount = customers.filter((c) => isHighRisk(c.risk_level)).length;
   const avgProbability = customers.length
     ? customers.reduce((sum, c) => sum + c.churn_probability, 0) / customers.length
@@ -135,7 +143,7 @@ function RetentionIntelligence({ customers, initialSelectedId }: { customers: At
             subtitle="Candidates for a retention message"
             icon={TrendingUp}
             tone="accent"
-            definition={AT_RISK_DEFINITION}
+            definition={atRiskDefinition(atRiskThreshold)}
           />
         </Reveal>
         <Reveal index={1}>
@@ -181,7 +189,16 @@ function RetentionIntelligence({ customers, initialSelectedId }: { customers: At
 }
 
 export function RetentionIntelligenceWorkspace({ initialSelectedId }: { initialSelectedId: string | null }) {
-  const { state, retry } = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
+  const customersState = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
+  const metricsState = useApiData<ModelMetrics>("/metrics");
+
+  const loading = customersState.state.status === "loading" || metricsState.state.status === "loading";
+  const errored = customersState.state.status === "error" ? customersState.state : metricsState.state.status === "error" ? metricsState.state : null;
+
+  function retryAll() {
+    customersState.retry();
+    metricsState.retry();
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -190,9 +207,15 @@ export function RetentionIntelligenceWorkspace({ initialSelectedId }: { initialS
         subtitle="Pick an at-risk customer to see their churn drivers and generate an AI retention message."
       />
 
-      {state.status === "loading" && <LoadingSpinner label="Loading customers" />}
-      {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
-      {state.status === "ready" && <RetentionIntelligence customers={state.data} initialSelectedId={initialSelectedId} />}
+      {loading && <LoadingSpinner label="Loading customers" />}
+      {errored && <ErrorState message={errored.message} onRetry={retryAll} />}
+      {customersState.state.status === "ready" && metricsState.state.status === "ready" && (
+        <RetentionIntelligence
+          customers={customersState.state.data}
+          initialSelectedId={initialSelectedId}
+          atRiskThreshold={metricsState.state.data.threshold}
+        />
+      )}
     </div>
   );
 }

@@ -13,9 +13,9 @@ import { Reveal } from "@/components/ui/Reveal";
 import { ChurnTrendChart } from "@/components/churn-trend-chart";
 import { ProbabilityDistributionChart } from "@/components/probability-distribution-chart";
 import { TopChurnDriversChart } from "@/components/top-churn-drivers-chart";
-import type { AtRiskCustomer, CustomerSummary, GlobalShapFeature, RiskLevel } from "@/lib/api";
+import type { AtRiskCustomer, CustomerSummary, GlobalShapFeature, ModelMetrics, RiskLevel } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
-import { AT_RISK_DEFINITION, HIGH_RISK_DEFINITION, isAtRisk } from "@/lib/risk";
+import { HIGH_RISK_DEFINITION, atRiskDefinition, isAtRisk } from "@/lib/risk";
 
 const SAMPLE_SIZE = 50;
 const TOP_CUSTOMER_COUNT = 5;
@@ -56,13 +56,15 @@ function Dashboard({
   summary,
   customers,
   shapFeatures,
+  atRiskThreshold,
 }: {
   summary: CustomerSummary;
   customers: AtRiskCustomer[];
   shapFeatures: GlobalShapFeature[];
+  atRiskThreshold: number;
 }) {
   const riskCounts = countByRisk(customers);
-  const atRiskCount = customers.filter((c) => isAtRisk(c.churn_probability)).length;
+  const atRiskCount = customers.filter((c) => isAtRisk(c.churn_probability, atRiskThreshold)).length;
   const avgProbability = customers.length
     ? customers.reduce((sum, c) => sum + c.churn_probability, 0) / customers.length
     : 0;
@@ -86,10 +88,10 @@ function Dashboard({
           <StatCard
             label="At-Risk Customers"
             value={<AnimatedNumber value={atRiskCount} />}
-            subtitle={`Above the ${(0.4672 * 100).toFixed(2)}% churn threshold`}
+            subtitle={`Above the ${(atRiskThreshold * 100).toFixed(2)}% churn threshold`}
             icon={TrendingUp}
             tone="medium"
-            definition={AT_RISK_DEFINITION}
+            definition={atRiskDefinition(atRiskThreshold)}
           />
         </Reveal>
         <Reveal index={2}>
@@ -155,21 +157,36 @@ export default function DashboardPage() {
   const summaryState = useApiData<CustomerSummary>("/customers/summary");
   const customersState = useApiData<AtRiskCustomer[]>(`/customers/at-risk?n=${SAMPLE_SIZE}`);
   const shapState = useApiData<GlobalShapFeature[]>("/shap/global");
+  const metricsState = useApiData<ModelMetrics>("/metrics");
 
-  const loading = [summaryState, customersState, shapState].some((s) => s.state.status === "loading");
-  const errored = [summaryState, customersState, shapState].find((s) => s.state.status === "error");
+  const states = [summaryState, customersState, shapState, metricsState];
+  const loading = states.some((s) => s.state.status === "loading");
+  const errored = states.find((s) => s.state.status === "error");
 
   function retryAll() {
     summaryState.retry();
     customersState.retry();
     shapState.retry();
+    metricsState.retry();
   }
 
   if (loading) return <LoadingSpinner label="Loading dashboard" />;
   if (errored && errored.state.status === "error") return <ErrorState message={errored.state.message} onRetry={retryAll} />;
-  if (summaryState.state.status !== "ready" || customersState.state.status !== "ready" || shapState.state.status !== "ready") {
+  if (
+    summaryState.state.status !== "ready" ||
+    customersState.state.status !== "ready" ||
+    shapState.state.status !== "ready" ||
+    metricsState.state.status !== "ready"
+  ) {
     return null;
   }
 
-  return <Dashboard summary={summaryState.state.data} customers={customersState.state.data} shapFeatures={shapState.state.data} />;
+  return (
+    <Dashboard
+      summary={summaryState.state.data}
+      customers={customersState.state.data}
+      shapFeatures={shapState.state.data}
+      atRiskThreshold={metricsState.state.data.threshold}
+    />
+  );
 }

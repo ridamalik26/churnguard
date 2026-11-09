@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Clock, DollarSign, FileText, Search, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { ReasonsChart } from "@/components/reasons-chart";
 import { ProbabilityGauge } from "@/components/probability-gauge";
+import { ShapWaterfallChart, summarizeTopDriver } from "@/components/shap-waterfall-chart";
+import { WhatIfSimulator } from "@/components/what-if-simulator";
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,7 +15,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { RiskBadge } from "@/components/ui/RiskBadge";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Reveal } from "@/components/ui/Reveal";
-import type { AtRiskCustomer, CustomerDetail, RiskLevel } from "@/lib/api";
+import type { AtRiskCustomer, CustomerDetail, RiskLevel, ShapWaterfall } from "@/lib/api";
 import { useApiData } from "@/lib/use-api-data";
 
 const SAMPLE_SIZE = 20;
@@ -191,6 +192,24 @@ function InfoCard({ title, rows }: { title: string; rows: { label: string; value
   );
 }
 
+function ShapWaterfallSection({ customerId }: { customerId: string }) {
+  const { state, retry } = useApiData<ShapWaterfall>(`/customers/${encodeURIComponent(customerId)}/shap-waterfall`);
+
+  return (
+    <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5 shadow-card">
+      <h2 className="font-semibold tracking-tight text-text-primary">SHAP Churn Drivers</h2>
+      {state.status === "loading" && <LoadingSpinner label="Loading SHAP breakdown" />}
+      {state.status === "error" && <ErrorState message={state.message} onRetry={retry} />}
+      {state.status === "ready" && (
+        <>
+          <p className="text-text-secondary">{summarizeTopDriver(state.data)}</p>
+          <ShapWaterfallChart waterfall={state.data} />
+        </>
+      )}
+    </section>
+  );
+}
+
 function CustomerWorkspace({ id }: { id: string }) {
   const { state, retry } = useApiData<CustomerDetail>(`/customers/${encodeURIComponent(id)}`);
 
@@ -256,10 +275,9 @@ function CustomerWorkspace({ id }: { id: string }) {
           />
         </div>
 
-        <section className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5 shadow-card">
-          <h2 className="font-semibold tracking-tight text-text-primary">SHAP Churn Drivers</h2>
-          <ReasonsChart reasons={customer.top_reasons} />
-        </section>
+        <ShapWaterfallSection customerId={customer.customerID} />
+
+        <WhatIfSimulator customer={customer} />
 
         <Link href={`/retention?customer=${encodeURIComponent(customer.customerID)}`} className="w-full">
           <Button variant="solid" className="w-full">

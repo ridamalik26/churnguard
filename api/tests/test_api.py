@@ -1,5 +1,6 @@
 """Tests for the Flask API. Groq is always mocked, so no API key or network access is needed."""
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -420,7 +421,10 @@ def test_customer_detail_returns_profile_and_prediction(client):
     assert response.status_code == 200
     data = response.get_json()
     assert data["customerID"] == customer_id
-    assert {"churn_probability", "risk_level", "top_reasons", "contract", "tenure", "monthly_charges"} <= set(data)
+    assert {
+        "churn_probability", "risk_level", "top_reasons", "contract", "tenure", "monthly_charges",
+        "tech_support", "online_security",
+    } <= set(data)
     assert len(data["top_reasons"]) == 3
 
 
@@ -434,6 +438,38 @@ def test_customer_detail_without_total_charges_returns_422(client):
     customer_id = customers.loc[customers["TotalCharges"].isna(), "customerID"].iloc[0]
     response = client.get(f"/customers/{customer_id}")
     assert response.status_code == 422
+
+
+def test_shap_waterfall_returns_full_breakdown(client):
+    customer_id = first_customer_id()
+    response = client.get(f"/customers/{customer_id}/shap-waterfall")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert set(data) == {"base_value", "features", "final_model_output", "final_probability"}
+    assert len(data["features"]) <= 11
+    for item in data["features"]:
+        assert {"feature", "label", "value", "contribution"} <= set(item)
+
+    total = data["base_value"] + sum(item["contribution"] for item in data["features"])
+    assert total == pytest.approx(data["final_model_output"])
+
+    sigmoid = 1 / (1 + math.exp(-data["final_model_output"]))
+    assert sigmoid == pytest.approx(data["final_probability"], abs=1e-6)
+
+
+def test_shap_waterfall_folds_small_features_into_other_bucket(client):
+    customer_id = first_customer_id()
+    data = client.get(f"/customers/{customer_id}/shap-waterfall").get_json()
+    labels = [item["label"] for item in data["features"]]
+    other = [item for item in data["features"] if item["feature"] == "other_features"]
+    if len(labels) == 11:
+        assert len(other) == 1
+        assert other[0]["value"] is None
+
+
+def test_shap_waterfall_unknown_customer_returns_404(client):
+    response = client.get("/customers/0000-NOPE/shap-waterfall")
+    assert response.status_code == 404
 
 
 def test_shap_global_returns_top_features_sorted_desc(client):
@@ -462,3 +498,101 @@ def test_top_at_risk_customer_matches_pipeline(client):
     customers = customers[customers["Churn"] == "No"].dropna(subset=["TotalCharges"])
     probabilities = api.PIPELINE.predict_proba(api.encode_customers(customers))[:, 1]
     assert top["churn_probability"] == round(float(np.max(probabilities)), api.PROBABILITY_DECIMALS)
+
+
+def month_to_month_customer_id():
+    customers = api.load_customers().dropna(subset=["TotalCharges"])
+    return customers.loc[customers["Contract"] == "Month-to-month", "customerID"].iloc[0]
+
+
+def test_simulate_valid_override_changes_probability(client):
+    customer_id = month_to_month_customer_id()
+    response = client.post("/simulate", json={"customer_id": customer_id, "overrides": {"Contract": "Two year", "tenure": 60}})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert set(data) == {
+        "customer_id", "overrides_applied", "original_probability", "new_probability",
+        "probability_change", "new_risk_level", "new_top_reasons",
+    }
+    assert data["customer_id"] == customer_id
+    assert data["overrides_applied"] == {"Contract": "Two year", "tenure": 60}
+    assert data["probability_change"] == pytest.approx(data["new_probability"] - data["original_probability"])
+    assert data["new_risk_level"] in {"high", "medium", "low"}
+    assert len(data["new_top_reasons"]) == 3
+    # A long contract and long tenure should make this customer look less likely to churn
+    assert data["new_probability"] < data["original_probability"]
+
+
+def test_simulate_multiple_editable_features(client):
+    customer_id = month_to_month_customer_id()
+    overrides = {
+        "InternetService": "DSL",
+        "PaymentMethod": "Credit card (automatic)",
+        "PaperlessBilling": "No",
+        "TechSupport": "Yes",
+        "OnlineSecurity": "Yes",
+        "MonthlyCharges": 40.0,
+    }
+    response = client.post("/simulate", json={"customer_id": customer_id, "overrides": overrides})
+    assert response.status_code == 200
+    assert response.get_json()["overrides_applied"] == overrides
+
+
+def test_simulate_rejects_non_editable_feature(client):
+    customer_id = month_to_month_customer_id()
+    response = client.post("/simulate", json={"customer_id": customer_id, "overrides": {"gender": "Male"}})
+    assert response.status_code == 400
+    details = " ".join(response.get_json()["details"])
+    assert "gender" in details
+    assert "Editable features" in details
+
+
+@pytest.mark.parametrize("field, value", [
+    ("Contract", "Three year"),
+    ("InternetService", "Satellite"),
+    ("PaymentMethod", "Cash"),
+    ("PaperlessBilling", "Maybe"),
+    ("TechSupport", "Unsure"),
+    ("OnlineSecurity", "Unsure"),
+    ("tenure", -1),
+    ("tenure", 5.5),
+    ("tenure", 1000),
+    ("MonthlyCharges", "a lot"),
+    ("MonthlyCharges", -5),
+    ("MonthlyCharges", 10000),
+])
+def test_simulate_rejects_invalid_values(client, field, value):
+    customer_id = month_to_month_customer_id()
+    response = client.post("/simulate", json={"customer_id": customer_id, "overrides": {field: value}})
+    assert response.status_code == 400
+    assert field in " ".join(response.get_json()["details"])
+
+
+def test_simulate_requires_customer_id(client):
+    response = client.post("/simulate", json={"overrides": {"tenure": 10}})
+    assert response.status_code == 400
+
+
+def test_simulate_requires_overrides(client):
+    customer_id = month_to_month_customer_id()
+    response = client.post("/simulate", json={"customer_id": customer_id})
+    assert response.status_code == 400
+
+
+def test_simulate_rejects_empty_overrides(client):
+    customer_id = month_to_month_customer_id()
+    response = client.post("/simulate", json={"customer_id": customer_id, "overrides": {}})
+    assert response.status_code == 400
+
+
+def test_simulate_unknown_customer_returns_404(client):
+    response = client.post("/simulate", json={"customer_id": "0000-NOPE", "overrides": {"tenure": 10}})
+    assert response.status_code == 404
+
+
+def test_simulate_does_not_mutate_cached_customer_data(client):
+    customer_id = month_to_month_customer_id()
+    before = api.load_customers().set_index("customerID").loc[customer_id, "tenure"]
+    client.post("/simulate", json={"customer_id": customer_id, "overrides": {"tenure": 1}})
+    after = api.load_customers().set_index("customerID").loc[customer_id, "tenure"]
+    assert before == after

@@ -20,7 +20,7 @@ from werkzeug.exceptions import HTTPException
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from explain import DEFAULT_DROPPED_LEVEL, DROPPED_LEVELS, _label, explain_customer, get_shap_values
+from explain import DEFAULT_DROPPED_LEVEL, DROPPED_LEVELS, _label, explain_customer, explain_customer_waterfall, get_shap_values
 
 load_dotenv(ROOT / ".env")
 
@@ -39,6 +39,16 @@ PROBABILITY_BUCKET_COUNT = 10
 GLOBAL_SHAP_SAMPLE_SIZE = 150
 GLOBAL_SHAP_RANDOM_STATE = 0
 TOP_GLOBAL_SHAP_FEATURES = 5
+
+# What-if simulator: the only fields a client may override, each with its own valid range.
+# Category bounds reuse CATEGORY_LEVELS (built from the trained feature columns) further below.
+EDITABLE_CATEGORY_FEATURES = (
+    "Contract", "InternetService", "PaymentMethod", "PaperlessBilling", "TechSupport", "OnlineSecurity",
+)
+EDITABLE_NUMERIC_BOUNDS = {
+    "tenure": {"min": 0, "max": 72, "whole": True},
+    "MonthlyCharges": {"min": 0, "max": 150, "whole": False},
+}
 
 WHOLE_NUMBER_FIELDS = {"tenure", "SeniorCitizen"}
 BINARY_FIELDS = {"SeniorCitizen"}
@@ -81,6 +91,7 @@ for _column in FEATURE_COLUMNS:
         CATEGORY_LEVELS.setdefault(_feature, [DROPPED_LEVELS.get(_feature, DEFAULT_DROPPED_LEVEL)]).append(_level)
 NUMERIC_FIELDS = [column for column in FEATURE_COLUMNS if "_" not in column]
 REQUIRED_FIELDS = NUMERIC_FIELDS + list(CATEGORY_LEVELS)
+EDITABLE_FEATURES = sorted(set(EDITABLE_CATEGORY_FEATURES) | set(EDITABLE_NUMERIC_BOUNDS))
 
 app = Flask(__name__)
 CORS(app)
@@ -137,6 +148,41 @@ def parse_customer(body):
     if errors:
         raise ApiError("Invalid customer record", details=errors)
     return pd.DataFrame([record])
+
+
+def validate_overrides(overrides):
+    """Validate a dict of what-if feature overrides and return it with clean, typed values."""
+    if not isinstance(overrides, dict) or not overrides:
+        raise ApiError(f"overrides must be a non-empty JSON object. Editable features are: {', '.join(EDITABLE_FEATURES)}")
+
+    errors = []
+    unknown = sorted(field for field in overrides if field not in EDITABLE_FEATURES)
+    if unknown:
+        errors.append(f"Unknown or non-editable feature(s): {', '.join(unknown)}. Editable features are: {', '.join(EDITABLE_FEATURES)}")
+
+    cleaned = {}
+    for field, raw_value in overrides.items():
+        if field in unknown:
+            continue
+        if field in EDITABLE_CATEGORY_FEATURES:
+            levels = CATEGORY_LEVELS[field]
+            if raw_value not in levels:
+                errors.append(f"{field} must be one of: {', '.join(levels)}. Got {raw_value!r}")
+            else:
+                cleaned[field] = raw_value
+        else:
+            bounds = EDITABLE_NUMERIC_BOUNDS[field]
+            number = parse_number(raw_value)
+            if number is None or number < bounds["min"] or number > bounds["max"]:
+                errors.append(f"{field} must be a number from {bounds['min']} to {bounds['max']}, got {raw_value!r}")
+            elif bounds["whole"] and not number.is_integer():
+                errors.append(f"{field} must be a whole number, got {raw_value!r}")
+            else:
+                cleaned[field] = number
+
+    if errors:
+        raise ApiError("Invalid overrides", details=errors)
+    return cleaned
 
 
 def json_body():
@@ -399,12 +445,21 @@ def customer_detail(customer_id):
         "paperless_billing": row["PaperlessBilling"],
         "internet_service": row["InternetService"],
         "phone_service": row["PhoneService"],
+        "tech_support": row["TechSupport"],
+        "online_security": row["OnlineSecurity"],
         "gender": row["gender"],
         "senior_citizen": bool(row["SeniorCitizen"]),
         "partner": row["Partner"],
         "dependents": row["Dependents"],
         **describe_customer(encoded, probability),
     })
+
+
+@app.get("/customers/<customer_id>/shap-waterfall")
+def customer_shap_waterfall(customer_id):
+    customer = find_customer(customer_id)
+    encoded = encode_customers(customer)
+    return jsonify(explain_customer_waterfall(PIPELINE, encoded, FEATURE_COLUMNS))
 
 
 @app.get("/metrics")
@@ -472,6 +527,33 @@ def retention_message():
     else:
         raise ApiError(f"Send either a customer_id string or all customer fields: {', '.join(REQUIRED_FIELDS)}")
     return jsonify(write_retention_message(customer))
+
+
+@app.post("/simulate")
+def simulate():
+    body = json_body()
+    if "customer_id" not in body:
+        raise ApiError(f"Send a customer_id string and an overrides object. Editable features are: {', '.join(EDITABLE_FEATURES)}")
+    customer = find_customer(body["customer_id"])
+    overrides = validate_overrides(body.get("overrides"))
+
+    original_probability = float(PIPELINE.predict_proba(encode_customers(customer))[0, 1])
+
+    simulated = customer.copy()
+    for field, value in overrides.items():
+        simulated[field] = value
+    simulated_encoded = encode_customers(simulated)
+    new_probability = float(PIPELINE.predict_proba(simulated_encoded)[0, 1])
+
+    return jsonify({
+        "customer_id": customer["customerID"].iloc[0],
+        "overrides_applied": overrides,
+        "original_probability": round(original_probability, PROBABILITY_DECIMALS),
+        "new_probability": round(new_probability, PROBABILITY_DECIMALS),
+        "probability_change": round(new_probability - original_probability, PROBABILITY_DECIMALS),
+        "new_risk_level": risk_level(new_probability),
+        "new_top_reasons": top_reasons(simulated_encoded),
+    })
 
 
 if __name__ == "__main__":
