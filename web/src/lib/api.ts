@@ -63,6 +63,64 @@ export type ConfusionMatrix = {
   true_positive: number;
 };
 
+export type ModelComparisonEntry = MetricSet & {
+  fit_time_seconds: number;
+  predict_time_seconds_per_row: number;
+};
+
+export type ModelComparison = Record<string, ModelComparisonEntry>;
+
+export type CalibrationCurvePoint = {
+  mean_predicted: number;
+  fraction_positive: number;
+};
+
+export type CalibrationMethod = "uncalibrated" | "isotonic" | "sigmoid";
+
+export type CalibrationEntry = {
+  brier_score: Record<CalibrationMethod, number>;
+  curves: Record<CalibrationMethod, CalibrationCurvePoint[]>;
+  best_method: CalibrationMethod;
+};
+
+export type Calibration = Record<string, CalibrationEntry>;
+
+export type ThresholdCurvePoint = {
+  threshold: number;
+  expected_savings: number;
+};
+
+export type BusinessThresholdConfig = {
+  cost_of_contact: number;
+  cost_of_retention_offer: number;
+  revenue_lost_per_churn: number;
+  offer_success_rate: number;
+};
+
+export type BusinessThreshold = {
+  config: BusinessThresholdConfig;
+  f1_threshold: number;
+  business_threshold: number;
+  curve: ThresholdCurvePoint[];
+  expected_savings_validation: number;
+  expected_savings_test_at_f1_threshold: number;
+  expected_savings_test_at_business_threshold: number;
+};
+
+export type SelectedModel = {
+  name: string;
+  rule: string;
+  tuned_params: Record<string, number | string>;
+  cv_pr_auc: number;
+  cv_roc_auc: number;
+  calibration_best_method: CalibrationMethod;
+  calibration_best_brier: number;
+  test_metrics_at_f1_threshold: MetricSet;
+  test_metrics_at_business_threshold: MetricSet;
+  test_confusion_matrix_at_f1_threshold: ConfusionMatrix;
+  note: string;
+};
+
 export type ModelMetrics = {
   threshold: number;
   xgboost_test_default_threshold: MetricSet;
@@ -73,6 +131,10 @@ export type ModelMetrics = {
     logistic_regression: number;
     xgboost: number;
   };
+  model_comparison: ModelComparison;
+  calibration: Calibration;
+  business_threshold: BusinessThreshold;
+  selected_model: SelectedModel;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;

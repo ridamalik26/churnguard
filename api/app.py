@@ -412,6 +412,21 @@ def metrics():
     return jsonify(METRICS)
 
 
+@app.get("/models/comparison")
+def models_comparison():
+    return jsonify(METRICS.get("model_comparison", {}))
+
+
+@app.get("/models/calibration")
+def models_calibration():
+    return jsonify(METRICS.get("calibration", {}))
+
+
+@app.get("/models/threshold-curve")
+def models_threshold_curve():
+    return jsonify(METRICS.get("business_threshold", {}))
+
+
 @lru_cache(maxsize=1)
 def global_shap_importance():
     """Mean absolute SHAP impact per source feature, sampled from the active customer base."""

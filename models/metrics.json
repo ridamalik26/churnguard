@@ -1,5 +1,5 @@
 {
-  "threshold": 0.46718835830688477,
+  "threshold": 0.6524895334076356,
   "feature_columns": [
     "SeniorCitizen",
     "tenure",
@@ -33,24 +33,24 @@
     "PaymentMethod_Mailed check"
   ],
   "xgboost_test_default_threshold": {
-    "roc_auc": 0.7921244239631338,
-    "pr_auc": 0.544533397500224,
-    "precision": 0.5289017341040463,
-    "recall": 0.6535714285714286,
-    "f1": 0.5846645367412141
+    "roc_auc": 0.8297511520737327,
+    "pr_auc": 0.6083030613719987,
+    "precision": 0.5032822757111597,
+    "recall": 0.8214285714285714,
+    "f1": 0.6241519674355496
   },
   "xgboost_test_tuned_threshold": {
-    "roc_auc": 0.7921244239631338,
-    "pr_auc": 0.544533397500224,
-    "precision": 0.5223463687150838,
-    "recall": 0.6678571428571428,
-    "f1": 0.5862068965517241
+    "roc_auc": 0.8297511520737327,
+    "pr_auc": 0.6083030613719987,
+    "precision": 0.5771812080536913,
+    "recall": 0.6142857142857143,
+    "f1": 0.5951557093425606
   },
   "xgboost_test_tuned_confusion_matrix": {
-    "true_negative": 604,
-    "false_positive": 171,
-    "false_negative": 93,
-    "true_positive": 187
+    "true_negative": 649,
+    "false_positive": 126,
+    "false_negative": 108,
+    "true_positive": 172
   },
   "logistic_regression_test": {
     "roc_auc": 0.8221589861751153,
@@ -61,6 +61,735 @@
   },
   "cv_mean_roc_auc": {
     "logistic_regression": 0.8475598246733504,
-    "xgboost": 0.820446586418497
+    "xgboost": 0.8482923244669148
+  },
+  "model_comparison": {
+    "logistic_regression": {
+      "roc_auc": 0.8475598246733504,
+      "pr_auc": 0.6703118578923367,
+      "precision": 0.5220336905861023,
+      "recall": 0.8065953028574772,
+      "f1": 0.6337943820322605,
+      "fit_time_seconds": 0.027590479957871138,
+      "predict_time_seconds_per_row": 4.106854615560223e-06
+    },
+    "random_forest": {
+      "roc_auc": 0.8280502522147085,
+      "pr_auc": 0.63573205954796,
+      "precision": 0.6470439341966046,
+      "recall": 0.4893217513380715,
+      "f1": 0.5570395494531845,
+      "fit_time_seconds": 0.2556358000030741,
+      "predict_time_seconds_per_row": 5.2123429021054124e-05
+    },
+    "xgboost": {
+      "roc_auc": 0.820446586418497,
+      "pr_auc": 0.6215137445128904,
+      "precision": 0.5484645748521018,
+      "recall": 0.6475797724547394,
+      "f1": 0.5938085575649688,
+      "fit_time_seconds": 0.16407530000433326,
+      "predict_time_seconds_per_row": 1.1806705363029966e-05
+    },
+    "lightgbm": {
+      "roc_auc": 0.8320802149107056,
+      "pr_auc": 0.6497744232388605,
+      "precision": 0.5345660345233146,
+      "recall": 0.699572987043374,
+      "f1": 0.6059445378445163,
+      "fit_time_seconds": 0.14280621998477727,
+      "predict_time_seconds_per_row": 9.09800944806859e-06
+    }
+  },
+  "calibration": {
+    "logistic_regression": {
+      "brier_score": {
+        "uncalibrated": 0.16445319516395746,
+        "isotonic": 0.13349277270447477,
+        "sigmoid": 0.132089409451424
+      },
+      "curves": {
+        "uncalibrated": [
+          {
+            "mean_predicted": 0.01571530037845186,
+            "fraction_positive": 0.009433962264150943
+          },
+          {
+            "mean_predicted": 0.05137410365936855,
+            "fraction_positive": 0.02857142857142857
+          },
+          {
+            "mean_predicted": 0.11394914298195916,
+            "fraction_positive": 0.02830188679245283
+          },
+          {
+            "mean_predicted": 0.21415911095103465,
+            "fraction_positive": 0.11428571428571428
+          },
+          {
+            "mean_predicted": 0.35227821139809257,
+            "fraction_positive": 0.16037735849056603
+          },
+          {
+            "mean_predicted": 0.4634803122227978,
+            "fraction_positive": 0.2
+          },
+          {
+            "mean_predicted": 0.5945273942895865,
+            "fraction_positive": 0.26666666666666666
+          },
+          {
+            "mean_predicted": 0.7104151691086333,
+            "fraction_positive": 0.44339622641509435
+          },
+          {
+            "mean_predicted": 0.8008777899205632,
+            "fraction_positive": 0.6761904761904762
+          },
+          {
+            "mean_predicted": 0.8757039932149729,
+            "fraction_positive": 0.7358490566037735
+          }
+        ],
+        "isotonic": [
+          {
+            "mean_predicted": 0.007342877592093223,
+            "fraction_positive": 0.01652892561983471
+          },
+          {
+            "mean_predicted": 0.02288799378999852,
+            "fraction_positive": 0.021739130434782608
+          },
+          {
+            "mean_predicted": 0.04160595820942019,
+            "fraction_positive": 0.028846153846153848
+          },
+          {
+            "mean_predicted": 0.08508281727657811,
+            "fraction_positive": 0.11320754716981132
+          },
+          {
+            "mean_predicted": 0.16229536206100562,
+            "fraction_positive": 0.17592592592592593
+          },
+          {
+            "mean_predicted": 0.23210957530137388,
+            "fraction_positive": 0.18627450980392157
+          },
+          {
+            "mean_predicted": 0.35408431704193594,
+            "fraction_positive": 0.2702702702702703
+          },
+          {
+            "mean_predicted": 0.43915137826294304,
+            "fraction_positive": 0.44
+          },
+          {
+            "mean_predicted": 0.583389722428057,
+            "fraction_positive": 0.6929824561403509
+          },
+          {
+            "mean_predicted": 0.8005705201987064,
+            "fraction_positive": 0.7319587628865979
+          }
+        ],
+        "sigmoid": [
+          {
+            "mean_predicted": 0.006278955045885503,
+            "fraction_positive": 0.009433962264150943
+          },
+          {
+            "mean_predicted": 0.02016688127423972,
+            "fraction_positive": 0.02857142857142857
+          },
+          {
+            "mean_predicted": 0.04576912487378183,
+            "fraction_positive": 0.02830188679245283
+          },
+          {
+            "mean_predicted": 0.09133329113784712,
+            "fraction_positive": 0.11428571428571428
+          },
+          {
+            "mean_predicted": 0.16555236080390412,
+            "fraction_positive": 0.16037735849056603
+          },
+          {
+            "mean_predicted": 0.2391420338661322,
+            "fraction_positive": 0.2
+          },
+          {
+            "mean_predicted": 0.3481384684855642,
+            "fraction_positive": 0.2571428571428571
+          },
+          {
+            "mean_predicted": 0.4722824640992374,
+            "fraction_positive": 0.44339622641509435
+          },
+          {
+            "mean_predicted": 0.5944340079829551,
+            "fraction_positive": 0.6761904761904762
+          },
+          {
+            "mean_predicted": 0.7202042779098349,
+            "fraction_positive": 0.7452830188679245
+          }
+        ]
+      },
+      "best_method": "sigmoid"
+    },
+    "lightgbm": {
+      "brier_score": {
+        "uncalibrated": 0.161888951261321,
+        "isotonic": 0.13176318424611402,
+        "sigmoid": 0.13214789222432383
+      },
+      "curves": {
+        "uncalibrated": [
+          {
+            "mean_predicted": 0.0306669147886755,
+            "fraction_positive": 0.009433962264150943
+          },
+          {
+            "mean_predicted": 0.05690870320396155,
+            "fraction_positive": 0.01904761904761905
+          },
+          {
+            "mean_predicted": 0.10678018913847792,
+            "fraction_positive": 0.05660377358490566
+          },
+          {
+            "mean_predicted": 0.21123335747421687,
+            "fraction_positive": 0.12380952380952381
+          },
+          {
+            "mean_predicted": 0.3192644339860914,
+            "fraction_positive": 0.10377358490566038
+          },
+          {
+            "mean_predicted": 0.4643525210058057,
+            "fraction_positive": 0.26666666666666666
+          },
+          {
+            "mean_predicted": 0.5818891365419663,
+            "fraction_positive": 0.2761904761904762
+          },
+          {
+            "mean_predicted": 0.6856597540238928,
+            "fraction_positive": 0.4056603773584906
+          },
+          {
+            "mean_predicted": 0.7791990634903081,
+            "fraction_positive": 0.6571428571428571
+          },
+          {
+            "mean_predicted": 0.8830791913781117,
+            "fraction_positive": 0.7452830188679245
+          }
+        ],
+        "isotonic": [
+          {
+            "mean_predicted": 0.007738895788068487,
+            "fraction_positive": 0.008620689655172414
+          },
+          {
+            "mean_predicted": 0.01823112402548878,
+            "fraction_positive": 0.042105263157894736
+          },
+          {
+            "mean_predicted": 0.041592686927637304,
+            "fraction_positive": 0.04716981132075472
+          },
+          {
+            "mean_predicted": 0.09400825628018411,
+            "fraction_positive": 0.10377358490566038
+          },
+          {
+            "mean_predicted": 0.15617641450459133,
+            "fraction_positive": 0.08571428571428572
+          },
+          {
+            "mean_predicted": 0.24767549150377116,
+            "fraction_positive": 0.29523809523809524
+          },
+          {
+            "mean_predicted": 0.3305346036979686,
+            "fraction_positive": 0.26666666666666666
+          },
+          {
+            "mean_predicted": 0.43795078179284186,
+            "fraction_positive": 0.4528301886792453
+          },
+          {
+            "mean_predicted": 0.5604254264353916,
+            "fraction_positive": 0.6
+          },
+          {
+            "mean_predicted": 0.7947962018117801,
+            "fraction_positive": 0.7641509433962265
+          }
+        ],
+        "sigmoid": [
+          {
+            "mean_predicted": 0.012305393154703363,
+            "fraction_positive": 0.009433962264150943
+          },
+          {
+            "mean_predicted": 0.023537433203594676,
+            "fraction_positive": 0.02857142857142857
+          },
+          {
+            "mean_predicted": 0.04498513435156859,
+            "fraction_positive": 0.05660377358490566
+          },
+          {
+            "mean_predicted": 0.09187402059458374,
+            "fraction_positive": 0.10476190476190476
+          },
+          {
+            "mean_predicted": 0.15212326725826447,
+            "fraction_positive": 0.11320754716981132
+          },
+          {
+            "mean_predicted": 0.24858049488235723,
+            "fraction_positive": 0.24761904761904763
+          },
+          {
+            "mean_predicted": 0.3490251323761515,
+            "fraction_positive": 0.2857142857142857
+          },
+          {
+            "mean_predicted": 0.4566404074939556,
+            "fraction_positive": 0.42452830188679247
+          },
+          {
+            "mean_predicted": 0.5766180863050895,
+            "fraction_positive": 0.6285714285714286
+          },
+          {
+            "mean_predicted": 0.7424411436898579,
+            "fraction_positive": 0.7641509433962265
+          }
+        ]
+      },
+      "best_method": "isotonic"
+    }
+  },
+  "business_threshold": {
+    "config": {
+      "_comment": "Assumed business costs used to pick the churn probability threshold that maximizes expected net savings. These are configurable placeholders, not measured figures.",
+      "cost_of_contact": 5.0,
+      "cost_of_retention_offer": 50.0,
+      "revenue_lost_per_churn": 777.0,
+      "offer_success_rate": 0.35
+    },
+    "f1_threshold": 0.6524895334076356,
+    "business_threshold": 0.16,
+    "curve": [
+      {
+        "threshold": 0.05,
+        "expected_savings": 55106.55
+      },
+      {
+        "threshold": 0.06,
+        "expected_savings": 55802.09999999999
+      },
+      {
+        "threshold": 0.07,
+        "expected_savings": 56454.59999999999
+      },
+      {
+        "threshold": 0.08,
+        "expected_savings": 56722.649999999994
+      },
+      {
+        "threshold": 0.09,
+        "expected_savings": 56583.75
+      },
+      {
+        "threshold": 0.1,
+        "expected_savings": 56921.25
+      },
+      {
+        "threshold": 0.11,
+        "expected_savings": 56964.3
+      },
+      {
+        "threshold": 0.12,
+        "expected_savings": 56917.34999999999
+      },
+      {
+        "threshold": 0.13,
+        "expected_savings": 57052.34999999999
+      },
+      {
+        "threshold": 0.14,
+        "expected_savings": 57027.899999999994
+      },
+      {
+        "threshold": 0.15,
+        "expected_savings": 57297.899999999994
+      },
+      {
+        "threshold": 0.16,
+        "expected_savings": 57432.899999999994
+      },
+      {
+        "threshold": 0.17,
+        "expected_savings": 57046.5
+      },
+      {
+        "threshold": 0.18,
+        "expected_savings": 56932.05
+      },
+      {
+        "threshold": 0.19,
+        "expected_savings": 56658.149999999994
+      },
+      {
+        "threshold": 0.2,
+        "expected_savings": 56678.7
+      },
+      {
+        "threshold": 0.21,
+        "expected_savings": 56881.2
+      },
+      {
+        "threshold": 0.22,
+        "expected_savings": 56674.8
+      },
+      {
+        "threshold": 0.23,
+        "expected_savings": 56832.3
+      },
+      {
+        "threshold": 0.24,
+        "expected_savings": 57057.3
+      },
+      {
+        "threshold": 0.25,
+        "expected_savings": 56194.5
+      },
+      {
+        "threshold": 0.26,
+        "expected_savings": 56329.5
+      },
+      {
+        "threshold": 0.27,
+        "expected_savings": 56350.049999999996
+      },
+      {
+        "threshold": 0.28,
+        "expected_savings": 55826.7
+      },
+      {
+        "threshold": 0.29,
+        "expected_savings": 55757.25
+      },
+      {
+        "threshold": 0.3,
+        "expected_savings": 55982.25
+      },
+      {
+        "threshold": 0.31,
+        "expected_savings": 56184.75
+      },
+      {
+        "threshold": 0.32,
+        "expected_savings": 56387.25
+      },
+      {
+        "threshold": 0.33,
+        "expected_savings": 56272.799999999996
+      },
+      {
+        "threshold": 0.34,
+        "expected_savings": 56362.799999999996
+      },
+      {
+        "threshold": 0.35,
+        "expected_savings": 56270.85
+      },
+      {
+        "threshold": 0.36,
+        "expected_savings": 56518.35
+      },
+      {
+        "threshold": 0.37,
+        "expected_savings": 55927.5
+      },
+      {
+        "threshold": 0.38,
+        "expected_savings": 55518.6
+      },
+      {
+        "threshold": 0.39,
+        "expected_savings": 55631.1
+      },
+      {
+        "threshold": 0.4,
+        "expected_savings": 55766.1
+      },
+      {
+        "threshold": 0.41,
+        "expected_savings": 55878.6
+      },
+      {
+        "threshold": 0.42,
+        "expected_savings": 55220.25
+      },
+      {
+        "threshold": 0.43,
+        "expected_savings": 54833.85
+      },
+      {
+        "threshold": 0.44,
+        "expected_savings": 54469.95
+      },
+      {
+        "threshold": 0.45,
+        "expected_savings": 54604.95
+      },
+      {
+        "threshold": 0.46,
+        "expected_savings": 54513.0
+      },
+      {
+        "threshold": 0.47,
+        "expected_savings": 54149.1
+      },
+      {
+        "threshold": 0.48,
+        "expected_savings": 53762.7
+      },
+      {
+        "threshold": 0.49,
+        "expected_savings": 53376.299999999996
+      },
+      {
+        "threshold": 0.5,
+        "expected_savings": 52151.549999999996
+      },
+      {
+        "threshold": 0.51,
+        "expected_savings": 51742.649999999994
+      },
+      {
+        "threshold": 0.52,
+        "expected_savings": 51650.7
+      },
+      {
+        "threshold": 0.53,
+        "expected_savings": 50787.899999999994
+      },
+      {
+        "threshold": 0.54,
+        "expected_savings": 50174.549999999996
+      },
+      {
+        "threshold": 0.55,
+        "expected_savings": 49718.7
+      },
+      {
+        "threshold": 0.56,
+        "expected_savings": 48945.899999999994
+      },
+      {
+        "threshold": 0.57,
+        "expected_savings": 48060.6
+      },
+      {
+        "threshold": 0.58,
+        "expected_savings": 47424.75
+      },
+      {
+        "threshold": 0.59,
+        "expected_savings": 47105.85
+      },
+      {
+        "threshold": 0.6,
+        "expected_savings": 47013.899999999994
+      },
+      {
+        "threshold": 0.61,
+        "expected_savings": 46468.049999999996
+      },
+      {
+        "threshold": 0.62,
+        "expected_savings": 46286.1
+      },
+      {
+        "threshold": 0.63,
+        "expected_savings": 44809.95
+      },
+      {
+        "threshold": 0.64,
+        "expected_savings": 44763.0
+      },
+      {
+        "threshold": 0.65,
+        "expected_savings": 44671.049999999996
+      },
+      {
+        "threshold": 0.66,
+        "expected_savings": 44262.15
+      },
+      {
+        "threshold": 0.67,
+        "expected_savings": 42855.45
+      },
+      {
+        "threshold": 0.68,
+        "expected_savings": 42264.6
+      },
+      {
+        "threshold": 0.69,
+        "expected_savings": 40992.9
+      },
+      {
+        "threshold": 0.7,
+        "expected_savings": 40539.0
+      },
+      {
+        "threshold": 0.71,
+        "expected_savings": 39494.25
+      },
+      {
+        "threshold": 0.72,
+        "expected_savings": 37339.2
+      },
+      {
+        "threshold": 0.73,
+        "expected_savings": 35501.1
+      },
+      {
+        "threshold": 0.74,
+        "expected_savings": 33323.549999999996
+      },
+      {
+        "threshold": 0.75,
+        "expected_savings": 31667.4
+      },
+      {
+        "threshold": 0.76,
+        "expected_savings": 30442.649999999998
+      },
+      {
+        "threshold": 0.77,
+        "expected_savings": 28265.1
+      },
+      {
+        "threshold": 0.78,
+        "expected_savings": 26813.399999999998
+      },
+      {
+        "threshold": 0.79,
+        "expected_savings": 25519.199999999997
+      },
+      {
+        "threshold": 0.8,
+        "expected_savings": 24157.5
+      },
+      {
+        "threshold": 0.81,
+        "expected_savings": 21458.55
+      },
+      {
+        "threshold": 0.82,
+        "expected_savings": 19757.399999999998
+      },
+      {
+        "threshold": 0.83,
+        "expected_savings": 19552.95
+      },
+      {
+        "threshold": 0.84,
+        "expected_savings": 18146.25
+      },
+      {
+        "threshold": 0.85,
+        "expected_savings": 16263.149999999998
+      },
+      {
+        "threshold": 0.86,
+        "expected_savings": 15218.4
+      },
+      {
+        "threshold": 0.87,
+        "expected_savings": 14832.0
+      },
+      {
+        "threshold": 0.88,
+        "expected_savings": 12654.449999999999
+      },
+      {
+        "threshold": 0.89,
+        "expected_savings": 10658.85
+      },
+      {
+        "threshold": 0.9,
+        "expected_savings": 8663.25
+      },
+      {
+        "threshold": 0.91,
+        "expected_savings": 5714.849999999999
+      },
+      {
+        "threshold": 0.92,
+        "expected_savings": 3242.85
+      },
+      {
+        "threshold": 0.93,
+        "expected_savings": 1496.6999999999998
+      },
+      {
+        "threshold": 0.94,
+        "expected_savings": 249.45
+      },
+      {
+        "threshold": 0.95,
+        "expected_savings": 249.45
+      }
+    ],
+    "expected_savings_validation": 57432.899999999994,
+    "expected_savings_test_at_f1_threshold": 40070.4,
+    "expected_savings_test_at_business_threshold": 57025.95
+  },
+  "selected_model": {
+    "name": "lightgbm",
+    "rule": "Highest cross-validated PR-AUC among the Optuna-tuned finalists; if the two finalists are within 0.005 PR-AUC of each other, the tie is broken by whichever has the lower best calibrated Brier score on the validation split.",
+    "tuned_params": {
+      "n_estimators": 457,
+      "num_leaves": 10,
+      "learning_rate": 0.012283701250734852,
+      "subsample": 0.9843851957988254,
+      "colsample_bytree": 0.740108463201264,
+      "min_child_samples": 48
+    },
+    "cv_pr_auc": 0.6748291042911276,
+    "cv_roc_auc": 0.8482923244669148,
+    "calibration_best_method": "isotonic",
+    "calibration_best_brier": 0.13176318424611402,
+    "test_metrics_at_f1_threshold": {
+      "roc_auc": 0.8297511520737327,
+      "pr_auc": 0.6083030613719987,
+      "precision": 0.5771812080536913,
+      "recall": 0.6142857142857143,
+      "f1": 0.5951557093425606
+    },
+    "test_metrics_at_business_threshold": {
+      "roc_auc": 0.8297511520737327,
+      "pr_auc": 0.6083030613719987,
+      "precision": 0.3657219973009447,
+      "recall": 0.9678571428571429,
+      "f1": 0.5308521057786484
+    },
+    "test_confusion_matrix_at_f1_threshold": {
+      "true_negative": 649,
+      "false_positive": 126,
+      "false_negative": 108,
+      "true_positive": 172
+    },
+    "note": "Deployed uncalibrated: calibration is evaluated above for transparency, but the shipped pipeline keeps raw probabilities so src/explain.py can use TreeExplainer or LinearExplainer directly on the model step."
   }
 }

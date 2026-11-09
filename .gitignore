@@ -5,6 +5,9 @@ data/processed/
 # Models
 models/*.joblib
 
+# MLflow
+mlruns/
+
 # Environment
 .env
 *.env

@@ -5,6 +5,9 @@ joblib
 pandas
 numpy
 xgboost
+lightgbm
+optuna
+mlflow
 shap
 scikit-learn
 imbalanced-learn

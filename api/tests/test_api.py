@@ -176,6 +176,43 @@ def test_metrics_confusion_matrix_agrees_with_saved_metrics(client):
     assert tp / (tp + fn) == pytest.approx(tuned["recall"])
 
 
+def test_models_comparison_covers_all_four_benchmarked_models(client):
+    response = client.get("/models/comparison")
+    assert response.status_code == 200
+    data = response.get_json()
+    saved = json.loads((api.ROOT / "models" / "metrics.json").read_text(encoding="utf-8"))
+    assert data == saved["model_comparison"]
+    assert set(data) == {"logistic_regression", "random_forest", "xgboost", "lightgbm"}
+    for result in data.values():
+        assert {"roc_auc", "pr_auc", "precision", "recall", "f1", "fit_time_seconds", "predict_time_seconds_per_row"} <= set(result)
+
+
+def test_models_calibration_reports_brier_score_per_method(client):
+    response = client.get("/models/calibration")
+    assert response.status_code == 200
+    data = response.get_json()
+    saved = json.loads((api.ROOT / "models" / "metrics.json").read_text(encoding="utf-8"))
+    assert data == saved["calibration"]
+    for result in data.values():
+        assert set(result["brier_score"]) == {"uncalibrated", "isotonic", "sigmoid"}
+        assert result["best_method"] in result["brier_score"]
+        assert set(result["curves"]) == {"uncalibrated", "isotonic", "sigmoid"}
+
+
+def test_models_threshold_curve_marks_f1_and_business_thresholds(client):
+    response = client.get("/models/threshold-curve")
+    assert response.status_code == 200
+    data = response.get_json()
+    saved = json.loads((api.ROOT / "models" / "metrics.json").read_text(encoding="utf-8"))
+    assert data == saved["business_threshold"]
+    assert "f1_threshold" in data and "business_threshold" in data
+    assert len(data["curve"]) > 0
+    for row in data["curve"]:
+        assert {"threshold", "expected_savings"} <= set(row)
+    thresholds = [row["threshold"] for row in data["curve"]]
+    assert thresholds == sorted(thresholds)
+
+
 def test_at_risk_only_returns_active_customers(client):
     returned = client.get(f"/customers/at-risk?n={api.MAX_AT_RISK_COUNT}").get_json()
     customers = api.load_customers().set_index("customerID")

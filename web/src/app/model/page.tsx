@@ -3,6 +3,9 @@
 import clsx from "clsx";
 import { PredictionDistributionChart } from "@/components/prediction-distribution-chart";
 import { RocCurveChart } from "@/components/roc-curve-chart";
+import { ModelComparisonTable, MODEL_LABELS } from "@/components/model-comparison-table";
+import { CalibrationChart } from "@/components/calibration-chart";
+import { ThresholdSavingsChart } from "@/components/threshold-savings-chart";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -20,13 +23,14 @@ const METRIC_LABELS: { key: MetricKey; label: string; borderColor: string }[] = 
 ];
 
 const METRIC_DECIMALS = 4;
-
-const HEADER_CELL = "px-3 py-2.5 text-right text-xs font-medium first:pl-0 first:text-left last:pr-0";
-const ROW_LABEL = "py-3 pr-3 text-left font-medium text-text-primary";
-const VALUE_CELL = "px-3 py-3 text-right tabular-nums last:pr-0";
+const CURRENCY = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function formatMetric(value: number) {
   return value.toFixed(METRIC_DECIMALS);
+}
+
+function modelLabel(name: string) {
+  return MODEL_LABELS[name] ?? name;
 }
 
 function SectionHeading({ title, description, note }: { title: string; description?: string; note?: string }) {
@@ -94,35 +98,34 @@ function ConfusionMatrixGrid({ matrix }: { matrix: ConfusionMatrix }) {
   );
 }
 
-function ComparisonTable({ metrics }: { metrics: ModelMetrics }) {
+function SelectedModelCard({ metrics }: { metrics: ModelMetrics }) {
+  const selected = metrics.selected_model;
   return (
-    <div className="relative overflow-x-auto">
-      <table className="w-full">
-        <thead className="text-text-secondary">
-          <tr className="border-b border-border">
-            <th scope="col" className={HEADER_CELL}>Metric</th>
-            <th scope="col" className={HEADER_CELL}>Logistic Regression</th>
-            <th scope="col" className={HEADER_CELL}>XGBoost (default threshold)</th>
-            <th scope="col" className={HEADER_CELL}>XGBoost (threshold {formatMetric(metrics.threshold)})</th>
-          </tr>
-        </thead>
-        <tbody>
-          {METRIC_LABELS.map(({ key, label }, index) => (
-            <tr key={key} className={clsx("border-b border-border text-text-primary", index % 2 === 1 && "bg-surface-raised")}>
-              <th scope="row" className={ROW_LABEL}>{label}</th>
-              <td className={VALUE_CELL}>{formatMetric(metrics.logistic_regression_test[key])}</td>
-              <td className={VALUE_CELL}>{formatMetric(metrics.xgboost_test_default_threshold[key])}</td>
-              <td className={VALUE_CELL}>{formatMetric(metrics.xgboost_test_tuned_threshold[key])}</td>
-            </tr>
-          ))}
-          <tr className={clsx("border-b border-border text-text-primary", METRIC_LABELS.length % 2 === 1 && "bg-surface-raised")}>
-            <th scope="row" className={ROW_LABEL}>Cross-validated ROC-AUC</th>
-            <td className={VALUE_CELL}>{formatMetric(metrics.cv_mean_roc_auc.logistic_regression)}</td>
-            <td className={VALUE_CELL}>{formatMetric(metrics.cv_mean_roc_auc.xgboost)}</td>
-            <td className={VALUE_CELL}>{formatMetric(metrics.cv_mean_roc_auc.xgboost)}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-3 rounded-card border border-accent bg-accent-light p-5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="font-semibold tracking-tight text-text-primary">Selected Model: {modelLabel(selected.name)}</h2>
+        <span className="rounded-badge bg-accent px-2 py-0.5 text-[10px] font-medium text-on-accent">Deployed</span>
+      </div>
+      <p className="text-text-secondary">{selected.rule}</p>
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <dt className="text-xs text-text-secondary">CV PR-AUC</dt>
+          <dd className="font-semibold text-text-primary">{formatMetric(selected.cv_pr_auc)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-text-secondary">CV ROC-AUC</dt>
+          <dd className="font-semibold text-text-primary">{formatMetric(selected.cv_roc_auc)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-text-secondary">Best Calibration</dt>
+          <dd className="font-semibold text-text-primary capitalize">{selected.calibration_best_method}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-text-secondary">Best Brier Score</dt>
+          <dd className="font-semibold text-text-primary">{formatMetric(selected.calibration_best_brier)}</dd>
+        </div>
+      </dl>
+      <p className="text-xs text-text-secondary">{selected.note}</p>
     </div>
   );
 }
@@ -139,9 +142,13 @@ export default function ModelPerformancePage() {
       {state.status === "ready" && (
         <>
           <Reveal index={0}>
+            <SelectedModelCard metrics={state.data} />
+          </Reveal>
+
+          <Reveal index={1}>
             <section className="flex flex-col gap-4">
               <SectionHeading
-                title="XGBoost at Tuned Classification Threshold"
+                title={`${modelLabel(state.data.selected_model.name)} at Tuned Classification Threshold`}
                 description={`A prediction counts as churn when its probability exceeds ${formatMetric(state.data.threshold)}, a threshold chosen to maximize F1 on the validation set.`}
               />
               <SummaryCards metrics={state.data} />
@@ -149,7 +156,7 @@ export default function ModelPerformancePage() {
           </Reveal>
 
           <section className="grid gap-4 lg:grid-cols-2">
-            <Reveal index={1}>
+            <Reveal index={2}>
               <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
                 <SectionHeading
                   title="Prediction Distribution"
@@ -158,7 +165,7 @@ export default function ModelPerformancePage() {
                 <PredictionDistributionChart />
               </div>
             </Reveal>
-            <Reveal index={2}>
+            <Reveal index={3}>
               <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
                 <SectionHeading
                   title="ROC Curve"
@@ -170,17 +177,84 @@ export default function ModelPerformancePage() {
             </Reveal>
           </section>
 
-          <Reveal index={3}>
+          <Reveal index={4}>
             <section className="flex flex-col gap-4">
-              <SectionHeading title="Confusion Matrix" description="XGBoost test set predictions at the tuned threshold." />
+              <SectionHeading title="Confusion Matrix" description="Test set predictions at the tuned threshold." />
               <ConfusionMatrixGrid matrix={state.data.xgboost_test_tuned_confusion_matrix} />
             </section>
           </Reveal>
 
-          <Reveal index={4}>
+          <Reveal index={5}>
             <section className="flex flex-col gap-4">
-              <SectionHeading title="Logistic Regression vs XGBoost" description="All saved metrics side by side." />
-              <ComparisonTable metrics={state.data} />
+              <SectionHeading
+                title="Model Comparison"
+                description="Stratified 5-fold cross-validation on the training set, for all 4 benchmarked algorithms."
+              />
+              <div className="rounded-card border border-border bg-surface p-5 shadow-card">
+                <ModelComparisonTable comparison={state.data.model_comparison} winner={state.data.selected_model.name} />
+              </div>
+            </section>
+          </Reveal>
+
+          <Reveal index={6}>
+            <section className="flex flex-col gap-4">
+              <SectionHeading
+                title="Probability Calibration"
+                description={`How well ${modelLabel(state.data.selected_model.name)}'s predicted probabilities match real outcomes, on the held-out validation split.`}
+                note="Lower Brier score is better. Isotonic and sigmoid calibration are evaluated for transparency; the deployed model keeps raw probabilities so SHAP explanations stay straightforward."
+              />
+              <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card lg:flex-row lg:items-center">
+                <div className="flex-1">
+                  <CalibrationChart calibration={state.data.calibration[state.data.selected_model.name]} />
+                </div>
+                <dl className="flex flex-row gap-6 lg:flex-col lg:gap-3">
+                  {Object.entries(state.data.calibration[state.data.selected_model.name].brier_score).map(([method, value]) => (
+                    <div key={method}>
+                      <dt className="text-xs text-text-secondary capitalize">{method}</dt>
+                      <dd className="font-semibold text-text-primary">{formatMetric(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </section>
+          </Reveal>
+
+          <Reveal index={7}>
+            <section className="flex flex-col gap-4">
+              <SectionHeading
+                title="Business Threshold Optimization"
+                description="Expected net savings from contacting at-risk customers, across classification thresholds."
+                note="Assumes a configurable cost of contact, cost of a retention offer, revenue lost per churned customer, and offer success rate. See src/business_config.json."
+              />
+              <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+                <ThresholdSavingsChart
+                  curve={state.data.business_threshold.curve}
+                  f1Threshold={state.data.business_threshold.f1_threshold}
+                  businessThreshold={state.data.business_threshold.business_threshold}
+                />
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div>
+                    <dt className="text-xs text-text-secondary">F1 Threshold</dt>
+                    <dd className="font-semibold text-text-primary">{formatMetric(state.data.business_threshold.f1_threshold)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-secondary">Business Threshold</dt>
+                    <dd className="font-semibold text-text-primary">{formatMetric(state.data.business_threshold.business_threshold)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-secondary">Savings at F1 Threshold</dt>
+                    <dd className="font-semibold text-text-primary">
+                      {CURRENCY.format(state.data.business_threshold.expected_savings_test_at_f1_threshold)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-text-secondary">Savings at Business Threshold</dt>
+                    <dd className="font-semibold text-text-primary">
+                      {CURRENCY.format(state.data.business_threshold.expected_savings_test_at_business_threshold)}
+                    </dd>
+                  </div>
+                </div>
+              </div>
             </section>
           </Reveal>
         </>

@@ -1,5 +1,6 @@
-"""SHAP explanations for the churn pipeline saved by notebooks/eda_and_train.ipynb."""
+"""SHAP explanations for the churn pipeline saved by src/train_advanced.py."""
 import re
+from functools import lru_cache
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,11 @@ import pandas as pd
 import shap
 
 TOP_REASONS = 3
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "data" / "raw" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+LINEAR_BACKGROUND_SIZE = 200
+LINEAR_BACKGROUND_SEED = 42
 
 # Levels removed by get_dummies(drop_first=True), which leaves no column to read them from.
 # src/verify_explain.py checks these against the raw data.
@@ -76,14 +82,48 @@ def _category_subject(feature, level):
     return f"{level} {name}"
 
 
+@lru_cache(maxsize=4)
+def _linear_background(feature_names):
+    """A fixed sample of real, already one-hot-encoded rows to use as a LinearExplainer background."""
+    data = pd.read_csv(DATA_PATH)
+    data["TotalCharges"] = pd.to_numeric(data["TotalCharges"].replace(r"^\s*$", np.nan, regex=True), errors="coerce")
+    data = data.dropna(subset=["TotalCharges"]).drop(columns=["customerID"])
+    cat_cols = data.drop(columns="Churn").select_dtypes(exclude="number").columns.tolist()
+    encoded = pd.get_dummies(data.drop(columns="Churn"), columns=cat_cols, drop_first=True, dtype=int)
+    encoded = encoded.reindex(columns=list(feature_names), fill_value=0)
+    return encoded.sample(n=min(LINEAR_BACKGROUND_SIZE, len(encoded)), random_state=LINEAR_BACKGROUND_SEED)
+
+
+def _is_linear_model(model):
+    """True for models explained by their coefficients (e.g. LogisticRegression), false for tree ensembles."""
+    return hasattr(model, "coef_")
+
+
 def get_shap_values(pipeline, X_df):
-    """Return a TreeExplainer and SHAP values whose columns line up with X_df.columns."""
+    """Return a SHAP explainer and values whose columns line up with X_df.columns.
+
+    Tree ensembles (XGBoost, Random Forest, LightGBM) use TreeExplainer. Linear models
+    (Logistic Regression) use LinearExplainer against a fixed background sample, since they
+    have no tree structure to walk.
+    """
     preprocessor = pipeline.named_steps["preprocessor"]
-    explainer = shap.TreeExplainer(pipeline.named_steps["model"])
-    shap_values = explainer.shap_values(preprocessor.transform(X_df))
+    model = pipeline.named_steps["model"]
+    transformed = preprocessor.transform(X_df)
+
+    if _is_linear_model(model):
+        background = _linear_background(tuple(X_df.columns))
+        explainer = shap.LinearExplainer(model, preprocessor.transform(background))
+    else:
+        explainer = shap.TreeExplainer(model)
+
+    shap_values = explainer.shap_values(transformed)
+    if isinstance(shap_values, list):
+        # Some tree explainers return one array per class for binary classifiers
+        shap_values = shap_values[1]
+
     # The preprocessor moves the scaled numeric columns to the front, so restore the order of X_df
-    transformed = [name.split("__", 1)[1] for name in preprocessor.get_feature_names_out()]
-    order = [transformed.index(column) for column in X_df.columns]
+    transformed_names = [name.split("__", 1)[1] for name in preprocessor.get_feature_names_out()]
+    order = [transformed_names.index(column) for column in X_df.columns]
     return explainer, shap_values[:, order]
 
 

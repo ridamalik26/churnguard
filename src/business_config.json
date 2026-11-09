@@ -1,0 +1,7 @@
+{
+  "_comment": "Assumed business costs used to pick the churn probability threshold that maximizes expected net savings. These are configurable placeholders, not measured figures.",
+  "cost_of_contact": 5.0,
+  "cost_of_retention_offer": 50.0,
+  "revenue_lost_per_churn": 777.0,
+  "offer_success_rate": 0.35
+}
