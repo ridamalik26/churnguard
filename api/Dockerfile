@@ -1,9 +1,9 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
 # libgomp1 is the OpenMP runtime LightGBM's and XGBoost's compiled extensions need;
-# python:3.11-slim does not include it.
+# python:3.13-slim does not include it.
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 

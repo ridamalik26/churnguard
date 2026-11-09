@@ -21,8 +21,7 @@ emails automatically.
 
 ## Screenshots
 
-Images referenced below live in `docs/screenshots/`. See `docs/screenshots/README.md` for
-the exact file names expected; none are committed yet, so add your own before these render.
+Captured from the running app (dark theme, 1440x900) and saved in `docs/screenshots/`.
 
 | Dashboard | At-Risk Customers |
 | --- | --- |

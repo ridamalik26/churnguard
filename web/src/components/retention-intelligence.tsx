@@ -229,9 +229,12 @@ export function RetentionIntelligenceWorkspace({ initialSelectedId }: { initialS
   const metricsState = useApiData<ModelMetrics>("/metrics");
   const historyState = useApiData<RetentionHistory>("/retention/history");
 
-  const states = [customersState, metricsState, historyState];
-  const loading = states.some((s) => s.state.status === "loading");
-  const errored = states.find((s) => s.state.status === "error");
+  // historyState is intentionally excluded from the page-level loading/error gate below: it
+  // refetches every time a recommendation is generated, and gating the whole tree on it would
+  // unmount RetentionIntelligence (and the just-generated recommendation) on every refetch.
+  const loading = customersState.state.status === "loading" || metricsState.state.status === "loading";
+  const errored = customersState.state.status === "error" ? customersState.state : metricsState.state.status === "error" ? metricsState.state : null;
+  const history: RetentionHistory = historyState.state.status === "ready" ? historyState.state.data : { total: 0, recent: [] };
 
   function retryAll() {
     customersState.retry();
@@ -247,13 +250,13 @@ export function RetentionIntelligenceWorkspace({ initialSelectedId }: { initialS
       />
 
       {loading && <LoadingSpinner label="Loading customers" />}
-      {errored && errored.state.status === "error" && <ErrorState message={errored.state.message} onRetry={retryAll} />}
-      {customersState.state.status === "ready" && metricsState.state.status === "ready" && historyState.state.status === "ready" && (
+      {errored && <ErrorState message={errored.message} onRetry={retryAll} />}
+      {customersState.state.status === "ready" && metricsState.state.status === "ready" && (
         <RetentionIntelligence
           customers={customersState.state.data}
           initialSelectedId={initialSelectedId}
           atRiskThreshold={metricsState.state.data.threshold}
-          history={historyState.state.data}
+          history={history}
           onRecommendationGenerated={historyState.retry}
         />
       )}
